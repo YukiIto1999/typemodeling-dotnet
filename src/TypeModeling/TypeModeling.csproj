@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>TypeModeling</AssemblyName>
+    <RootNamespace>TypeModeling</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- single-target analyzer の TFM negotiation 省略と build graph 重複評価の回避 -->
+    <ProjectReference Include="../TypeModeling.Analyzers/TypeModeling.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+</Project>

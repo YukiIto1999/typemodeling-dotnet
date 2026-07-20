@@ -1,0 +1,6 @@
+bin/
+obj/
+.devenv/
+.direnv/
+StrykerOutput/
+docs/

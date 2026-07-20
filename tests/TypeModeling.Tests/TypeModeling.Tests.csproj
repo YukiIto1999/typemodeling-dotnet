@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>TypeModeling.Tests</AssemblyName>
+    <RootNamespace>TypeModeling.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- テスト名は仕様を表す一文。下線区切りを許し CA1707 を test だけ除外する。 -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/TypeModeling/TypeModeling.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="CsCheck" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- compile-time engine をテストコードにも適用する。 -->
+    <!-- TypeModeling 経由の推移参照に依存しない analyzer-only edge -->
+    <ProjectReference Include="../../src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      ExposeAsReference="true" />
+  </ItemGroup>
+
+  <!-- analyzer 実出力から生成器の実装型を直接検証するテスト用参照 -->
+  <Target Name="AddTypeModelingAnalyzerImplementationReference"
+          AfterTargets="ResolveProjectReferences"
+          Condition="'$(MSBuildIsRestoring)' != 'true'">
+    <ItemGroup>
+      <Reference Include="%(Analyzer.FullPath)"
+                 Condition="'%(Analyzer.ExposeAsReference)' == 'true' and
+                            '%(Analyzer.Extension)' == '.dll'">
+        <Private>true</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+</Project>

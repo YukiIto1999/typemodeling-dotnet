@@ -1,0 +1,9 @@
+// 純粋核では非決定値を外部から明示的に渡す
+P:System.DateTime.Now;現在時刻を引数として受け取る
+P:System.DateTime.Today;現在日付を引数として受け取る
+P:System.DateTime.UtcNow;現在時刻を引数として受け取る
+P:System.DateTimeOffset.Now;現在時刻を引数として受け取る
+P:System.DateTimeOffset.UtcNow;現在時刻を引数として受け取る
+M:System.Guid.NewGuid;識別子を引数として受け取る
+M:System.Random.#ctor;乱数源を外部から受け取る
+P:System.Random.Shared;乱数源を外部から受け取る
