@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>TypeModeling.Analyzers.Tests</AssemblyName>
+    <RootNamespace>TypeModeling.Analyzers.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- テスト名は仕様を表す一文。下線区切りを許し CA1707 を test だけ除外する。 -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+</Project>
