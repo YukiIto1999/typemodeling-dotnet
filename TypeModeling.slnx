@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TypeModeling/TypeModeling.csproj" />
+    <Project Path="src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj" />
+    <Project Path="src/TypeModeling.Testing/TypeModeling.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TypeModeling.Analyzers.Tests/TypeModeling.Analyzers.Tests.csproj" />
+    <Project Path="tests/TypeModeling.Testing.Tests/TypeModeling.Testing.Tests.csproj" />
+    <Project Path="tests/TypeModeling.Tests/TypeModeling.Tests.csproj" />
+  </Folder>
+</Solution>
