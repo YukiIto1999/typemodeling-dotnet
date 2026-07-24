@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Facts;
 
 /// <summary>閉じた型集合の定義規則</summary>
 internal static class ClosedTypeSet

@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>loop 固定点における local 到達状態解析</summary>
 internal static class ReachingLocalLoopAnalysis

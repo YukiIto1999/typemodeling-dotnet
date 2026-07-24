@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>閉じた値の由来を保つ拡大変換規則</summary>
 internal static class ValuePreservingWidening

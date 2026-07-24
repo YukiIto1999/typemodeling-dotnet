@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>local 到達値解析の単一経路状態</summary>
 internal sealed class ReachingLocalFlowState

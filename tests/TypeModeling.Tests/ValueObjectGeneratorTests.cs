@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using TypeModeling.Analyzers;
+using TypeModeling.Analyzers.Generation.ValueObject;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 using TUnit.Core;

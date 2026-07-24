@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>local 代入による到達状態更新</summary>
 internal static class ReachingLocalAssignmentAnalysis

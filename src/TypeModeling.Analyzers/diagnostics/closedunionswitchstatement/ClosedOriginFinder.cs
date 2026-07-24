@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using TypeModeling.Analyzers.Facts;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>switch 値へ到達する閉じた値の由来追跡</summary>
 internal static class ClosedOriginFinder

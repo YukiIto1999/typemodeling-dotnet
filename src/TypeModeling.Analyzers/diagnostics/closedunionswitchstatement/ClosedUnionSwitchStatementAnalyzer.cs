@@ -3,9 +3,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using TypeModeling.Analyzers.ClosedUnion;
+using TypeModeling.Analyzers.Facts;
 
-namespace TypeModeling.Analyzers;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>閉じた型を switch statement で分岐する経路の禁止</summary>
 /// <remarks>variant 追加時の CS8509 を保持できる switch expression への限定</remarks>

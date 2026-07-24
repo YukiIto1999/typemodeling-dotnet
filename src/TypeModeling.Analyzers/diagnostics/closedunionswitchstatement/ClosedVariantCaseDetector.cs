@@ -1,7 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using TypeModeling.Analyzers.Facts;
 
-namespace TypeModeling.Analyzers.ClosedUnion;
+namespace TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 
 /// <summary>switch case に現れる閉じた variant の検出</summary>
 internal static class ClosedVariantCaseDetector

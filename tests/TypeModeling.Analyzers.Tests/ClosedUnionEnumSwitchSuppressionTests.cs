@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using TypeModeling.Analyzers;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 using TUnit.Core;
