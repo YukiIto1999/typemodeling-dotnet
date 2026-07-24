@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace TypeModeling.Analyzers.ValueObject;
+namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>診断を含む値オブジェクト記述への変換</summary>
 internal static class ValueObjectDescriptionBuilder

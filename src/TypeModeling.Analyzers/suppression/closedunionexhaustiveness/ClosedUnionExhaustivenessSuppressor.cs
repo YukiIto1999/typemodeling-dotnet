@@ -3,9 +3,10 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using TypeModeling.Analyzers.ClosedUnion;
+using TypeModeling.Analyzers.Facts;
+using RoslynSuppression = Microsoft.CodeAnalysis.Diagnostics.Suppression;
 
-namespace TypeModeling.Analyzers;
+namespace TypeModeling.Analyzers.Suppression.ClosedUnionExhaustiveness;
 
 /// <summary>閉じた型集合に対する switch 式診断の抑止器</summary>
 /// <remarks>全てを扱う switch 式に限る抑止による網羅の機械保証</remarks>
@@ -68,7 +69,7 @@ public sealed class ClosedUnionExhaustivenessSuppressor : DiagnosticSuppressor
                     model,
                     context.CancellationToken))
             {
-                context.ReportSuppression(Suppression.Create(SwitchExpressionRule, diagnostic));
+                context.ReportSuppression(RoslynSuppression.Create(SwitchExpressionRule, diagnostic));
             }
             else if (diagnostic.Id == SwitchExpressionUnnamedEnumValueId
                 && ClosedEnumSwitchCoverage.CoversEveryNamedMember(
@@ -77,7 +78,7 @@ public sealed class ClosedUnionExhaustivenessSuppressor : DiagnosticSuppressor
                     model,
                     context.CancellationToken))
             {
-                context.ReportSuppression(Suppression.Create(EnumSwitchExpressionRule, diagnostic));
+                context.ReportSuppression(RoslynSuppression.Create(EnumSwitchExpressionRule, diagnostic));
             }
         }
     }

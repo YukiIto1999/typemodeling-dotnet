@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace TypeModeling.Analyzers.ValueObject;
+namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>値オブジェクト記述からの UTF8 source 出力</summary>
 internal static class ValueObjectSourceEmitter

@@ -1,4 +1,4 @@
-namespace TypeModeling.Analyzers.ValueObject;
+namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>適合済み宣言から抽出した source 生成 model</summary>
 /// <param name="Namespace">生成先 namespace</param>

@@ -1,8 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using TypeModeling.Analyzers.ValueObject;
 
-namespace TypeModeling.Analyzers;
+namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>ValueObject の標識が付いた partial record への検証付き構築定型の生成</summary>
 [Generator]

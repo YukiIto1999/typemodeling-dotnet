@@ -1,7 +1,7 @@
 using System;
 using Microsoft.CodeAnalysis;
 
-namespace TypeModeling.Analyzers.ValueObject;
+namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>値オブジェクトの生成記述</summary>
 /// <param name="Model">生成可能な値オブジェクト model</param>
