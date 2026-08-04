@@ -79,20 +79,20 @@ internal static class ClosedVariantSwitchCoverage
         {
             case DeclarationPatternSyntax declaration
                 when model.GetTypeInfo(declaration.Type, cancellationToken).Type is
-                    { } declarationType:
+                { } declarationType:
                 yield return declarationType;
                 break;
             case TypePatternSyntax typePattern
                 when model.GetTypeInfo(typePattern.Type, cancellationToken).Type is
-                    { } typePatternType:
+                { } typePatternType:
                 yield return typePatternType;
                 break;
             case RecursivePatternSyntax
-                {
-                    Type: { } type,
-                    PropertyPatternClause: null,
-                    PositionalPatternClause: null,
-                }
+            {
+                Type: { } type,
+                PropertyPatternClause: null,
+                PositionalPatternClause: null,
+            }
                 when model.GetTypeInfo(type, cancellationToken).Type is { } recursiveType:
                 yield return recursiveType;
                 break;

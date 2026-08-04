@@ -35,14 +35,14 @@ internal static class ValueObjectDescriptionBuilder
         if (context.TargetNode is not RecordDeclarationSyntax declaration ||
             !declaration.Modifiers.Any(SyntaxKind.PartialKeyword) ||
             context.TargetSymbol is not INamedTypeSymbol
-                { IsRecord: true, TypeKind: TypeKind.Class } type)
+            { IsRecord: true, TypeKind: TypeKind.Class } type)
         {
             return null;
         }
 
         if (context.Attributes.Length == 0 ||
             context.Attributes[0].AttributeClass is not
-                { TypeArguments.Length: 1 } attributeClass)
+            { TypeArguments.Length: 1 } attributeClass)
         {
             return null;
         }
