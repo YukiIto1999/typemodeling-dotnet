@@ -18,7 +18,7 @@ internal static class ClosedVariantCaseDetector
             {
                 if (clause is ISingleValueCaseClauseOperation singleValue &&
                     ClosedTypeSet.Canonical(singleValue.Value.Type) is
-                        { TypeKind: TypeKind.Enum } closedEnum)
+                    { TypeKind: TypeKind.Enum } closedEnum)
                 {
                     return closedEnum;
                 }

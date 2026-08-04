@@ -17,7 +17,7 @@ internal static class ClosedVariantValueDetector
 
         if (operation is IFieldReferenceOperation field &&
             ClosedTypeSet.Canonical(field.Field.ContainingType) is
-                { TypeKind: TypeKind.Enum } fieldEnum)
+            { TypeKind: TypeKind.Enum } fieldEnum)
         {
             return fieldEnum;
         }
