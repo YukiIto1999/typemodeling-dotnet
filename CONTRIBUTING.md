@@ -1,31 +1,41 @@
 # CONTRIBUTING
 
+## 開発環境
+
+devenv が .NET SDK と検証入口を管理する。作業前にリポジトリの root で `devenv shell` を実行する。
+
 ## ブランチ
 
 統合ブランチは `develop`、リリースブランチは `main`。変更は `develop` から枝を切り、作業後に `develop` へ戻す。`main` への直接コミットはしない。
 
-ブランチ名は用途を表す prefix を完全形で付ける(`feat/` ではなく `feature/`)。
+ブランチ名は commit の型と同じ prefix を付ける。
 
 | prefix      | 用途                         |
 | ----------- | ---------------------------- |
-| `feature/`  | 機能追加                     |
+| `feat/`     | 機能追加                     |
 | `fix/`      | バグ修正                     |
 | `refactor/` | 挙動を変えない構造改善       |
-| `chore/`    | 雑務・依存更新・リリース準備 |
 | `docs/`     | ドキュメント                 |
+| `test/`     | テスト                       |
+| `style/`    | 挙動に影響しない表記の統一   |
+| `chore/`    | 雑務・依存更新・リリース準備 |
+| `ci/`       | CI 設定                      |
 
 ## コミット
 
-`型: 要約` の一行で書き、型はブランチの prefix に揃える。要約は変更内容が読み取れる日本語にし、本文は付けない。一つのコミットには一つの関心のみを含め、無関係な変更は分ける。`Co-authored-by` などの自動生成痕跡は残さない(`commit-msg` フックが拒否する)。
-
-## マージの条件
-
-`develop` へ戻す前に `devenv shell verify` を通す。全 project の build が警告0、全テストが緑、mutation が break を超えていることが条件になる。
-規範は architecture-standard に従う。設計のメモと裁定の記録は、git 管理外の docs/ に置く。
+`型: 要約` の一行で書き、型はブランチの prefix に揃える。要約は変更内容が読み取れる日本語の体言止めにし、本文は付けない。一つのコミットには一つの関心のみを含め、無関係な変更は分ける。`Co-authored-by` などの自動生成痕跡は残さない(`commit-msg` フックが拒否する)。
 
 ## マージ
 
-`develop` へは `--no-ff` でマージし、`Merge branch '<branch>' into develop` のマージコミットを残す。作業ブランチはマージ後に削除する。
+`develop` へは `--no-ff` でマージし、マージコミットも `chore: <作業名>の枝を統合` の同じ形式で書く(フックがマージコミットにも一行の `型: 要約` を求める)。作業ブランチはマージ後に削除する。
+
+## 検証
+
+マージ前にリポジトリの root で `devenv shell verify` を通す。build が警告 0、全テストが緑、mutation testing(mutation-dotnet)が基準を満たすことを条件にする。
+
+## 文書
+
+公開する文書は README(英語)・README.ja(日本語)・CHANGELOG(英語)・CONTRIBUTING・LICENSE に限る。設計メモと決定の記録は git 管理外の `docs/` に置く。公開文書の日本語は体言止めを基調にする。
 
 ## リリース
 
@@ -33,4 +43,4 @@
 2. `chore: release X.Y.Z` でコミットし `develop` へマージ
 3. `main` を該当コミットへ進め、`vX.Y.Z` タグを付ける
 
-registry への配布は行わない。消費側は checkout したリポジトリの `main` のタグを相対参照で取り込む。
+registry への配布は行わない。利用側は checkout したリポジトリのリリースタグを参照する。

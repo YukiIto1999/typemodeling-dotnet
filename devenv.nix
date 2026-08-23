@@ -25,10 +25,11 @@
       dotnet "$test_assembly" --no-ansi --disable-logo --no-progress
     done
 
-    # Stryker の MTP preview runner は solution 検出時に test-projects の固定を無視して全テストを掃く。
-    # 道具側の欠陥境界として stryker 段だけ solution を退避する。
-    mv TypeModeling.slnx TypeModeling.slnx.stryker-shadow
-    trap 'mv TypeModeling.slnx.stryker-shadow TypeModeling.slnx' EXIT
-    DOTNET_PROCESSOR_COUNT=1 dotnet stryker --skip-version-check
+    # mutation testing は隣接 checkout の mutation-dotnet をゲートに使う
+    dotnet build ../mutation-dotnet/Mutation.slnx --nologo --verbosity quiet
+    dotnet ../mutation-dotnet/src/Mutation.Cli/bin/Debug/net10.0/Mutation.Cli.dll run \
+      --project src/TypeModeling/TypeModeling.csproj \
+      --test-project tests/TypeModeling.Tests/TypeModeling.Tests.csproj \
+      --output .mutation-output --with-baseline --break-at 60
   '';
 }
