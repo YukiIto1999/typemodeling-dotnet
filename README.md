@@ -1,24 +1,23 @@
-# typemodeling
+[English](README.md) | [日本語](README.ja.md)
 
-不正な状態を型で表現できなくする、C# の型モデリング基盤。
-この文書の読み手は消費側の開発者で、導入と使い方を示す。
+# TypeModeling
 
-## 問題
+TypeModeling is a C# type-modeling foundation that makes invalid states unrepresentable. This document is for consuming developers and covers installation and usage.
 
-素の C# では、判別共用体の網羅は既定の分岐で崩れ、検証を経ない値の構築を型で塞げない。
-派生の登録漏れや階層外の派生は、実行時の直列化例外になるまで見えない。
+## Problem
 
-## 提供するもの
+In plain C#, exhaustive matching over a discriminated union collapses through the default branch, and nothing stops values from being constructed without validation. A missing registration or an out-of-hierarchy derivation stays invisible until it becomes a serialization exception at run time.
 
-`[ClosedUnion]` が外部派生を封じた判別共用体を、`[ValueObject<TUnderlying>]` が検証を経た構築だけを許す値オブジェクトを、言語機能のように書かせる。
-`Result<TValue, TFailure>` と `Unit` と `Never` が純粋な計算の成功と失敗を型に現す。
-compile-time engine(TYPMOD001 と TYPMOD002 と網羅の suppressor)が、判別と生成の規律を build で強制する。
-[TypeModeling.Testing](./src/TypeModeling.Testing/) が、閉包と attach の設営義務を宣言だけで実行する。
+## What it provides
 
-## 取り込み
+- `[ClosedUnion]` writes discriminated unions with external derivation sealed off, and `[ValueObject<TUnderlying>]` writes value objects that only allow validated construction — both close to a language feature.
+- `Result<TValue, TFailure>`, `Unit`, and `Never` express success and failure of pure computation in types.
+- The compile-time engine (TYPMOD001, TYPMOD002, and the exhaustiveness suppressor) enforces the discrimination and construction discipline at build time.
+- [TypeModeling.Testing](./src/TypeModeling.Testing/) executes closure and attach obligations from declarations alone.
 
-同一 workspace に checkout し、相対参照で取り込む。
-バージョンは `main` の `vX.Y.Z` タグで指す。
+## Installation
+
+Check out the repository into the same workspace and reference it by relative path. Pin the version with a `vX.Y.Z` tag on `main`.
 
 ```xml
 <ItemGroup>
@@ -28,10 +27,9 @@ compile-time engine(TYPMOD001 と TYPMOD002 と網羅の suppressor)が、判別
 </ItemGroup>
 ```
 
-閉じた型を宣言または判別する全 project が analyzer を attach する。
-arch test の project は [TypeModeling.Testing](./src/TypeModeling.Testing/) も参照する。
+Every project that declares or discriminates closed types attaches the analyzer. Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
 
-## 使い方
+## Usage
 
 ### ClosedUnion
 
@@ -47,7 +45,7 @@ public abstract record PaymentState
 }
 ```
 
-閉じた variant の判別は switch 式で書く。
+Discriminate closed variants with a switch expression.
 
 ### ValueObject
 
@@ -64,7 +62,6 @@ public sealed partial record OrderId
 }
 ```
 
-
 ### Result
 
 ```csharp
@@ -74,20 +71,18 @@ Result<int, ParseFailure> parsed = ParsePort(input);
 var doubled = parsed.Map(n => n * 2);
 ```
 
+## Consumer checks
 
-## 消費側の検査
+Consumer test projects reference `TypeModeling.Testing` and run the setup obligations from declarations alone.
 
-消費側の test project は `TypeModeling.Testing` を参照する。
-設営義務の検査は宣言だけを書いて実行する。
-
-### 閉じた階層の閉包検査
+### Closure check of closed hierarchies
 
 ```csharp
 using TypeModeling.Testing.Closure;
 
 var excluded = new Dictionary<string, string>
 {
-    ["tools/CodeGen/CodeGen.csproj"] = "build 時にだけ動く生成 tool で出荷閉包の外に置く",
+    ["tools/CodeGen/CodeGen.csproj"] = "a build-time-only generation tool, outside the shipped closure",
 };
 var closure = await SolutionClosureLoader.LoadAsync(
     new SolutionClosureScan(repoRoot, "App.slnx", "Debug", excluded),
@@ -97,7 +92,7 @@ await Assert.That(SolutionClosureConformance.InventoryViolations(
 await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure)).IsEmpty();
 ```
 
-### analyzer の attach 検査
+### Analyzer attach check
 
 ```csharp
 using TypeModeling.Testing.Attach;
@@ -115,17 +110,14 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
 await Assert.That(violations).IsEmpty();
 ```
 
-## 依存
+## Dependencies
 
-本体 `src/TypeModeling/` は他のライブラリに依存しない。
-effectsystem-dotnet が本体を参照する。
-検査の実行機 `src/TypeModeling.Testing/` だけが MSBuild 評価と probe compile のために Roslyn の Microsoft.CodeAnalysis.CSharp へ依存する。
+The runtime `src/TypeModeling/` depends on no other library; effectsystem-dotnet references it. Only the check executor `src/TypeModeling.Testing/` depends on Roslyn's Microsoft.CodeAnalysis.CSharp, for MSBuild evaluation and probe compilation.
 
-restore 後の build、全 test、mutation の一括検証は `devenv shell verify` で実行する。
+## Development
 
-## 開発
+This repository applies its shipped checks to itself ([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs)). `devenv shell verify` runs the build, all tests, and mutation testing of the whole runtime with [mutation-dotnet](../mutation-dotnet) as the gate. Branch, commit, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md), and released changes in [CHANGELOG.md](./CHANGELOG.md).
 
-このリポジトリは、出荷する検査を自分自身へ適用する([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs))。
-runtime 全域が mutation の対象で、基準は 100 を保つ。
-build と全 test と mutation の一括検証は `devenv shell verify` で実行する。
-枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
+## License
+
+MIT
