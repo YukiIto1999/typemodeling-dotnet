@@ -3,4 +3,5 @@ obj/
 .devenv/
 .direnv/
 StrykerOutput/
+.mutation-output/
 docs/
