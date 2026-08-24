@@ -7,8 +7,8 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NuGetAudit>true</NuGetAudit>
     <WarningsAsErrors>$(WarningsAsErrors);CS1591;CS4014</WarningsAsErrors>
+    <NuGetAudit>true</NuGetAudit>
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900</WarningsNotAsErrors>
   </PropertyGroup>
 
