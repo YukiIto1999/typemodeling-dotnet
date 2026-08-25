@@ -116,7 +116,7 @@ await Assert.That(violations).IsEmpty();
 
 ## 開発
 
-このリポジトリは、出荷する検査を自分自身へ適用する([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs))。`devenv shell verify` が build、全テスト、runtime 全域の mutation testing([mutation-dotnet](../mutation-dotnet) をゲートに使用)を一括実行する。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
+このリポジトリは、出荷する検査を自分自身へ適用する([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs))。`devenv shell verify` が build、全テスト、runtime 全域の mutation testing を一括実行する。mutation のゲートには [mutation-dotnet](../mutation-dotnet) を使う。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
 
 ## ライセンス
 
