@@ -2,5 +2,9 @@ bin/
 obj/
 .devenv/
 .direnv/
+.vscode/
+.claude/
+.mcp.json
+CLAUDE.md
 .mutation-output/
 docs/
