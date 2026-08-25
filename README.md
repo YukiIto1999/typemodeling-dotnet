@@ -62,6 +62,12 @@ public sealed partial record OrderId
 }
 ```
 
+Construction goes through the generated `Create`, which returns the validation result:
+
+```csharp
+Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
+```
+
 ### Result
 
 ```csharp

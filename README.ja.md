@@ -62,6 +62,12 @@ public sealed partial record OrderId
 }
 ```
 
+構築は生成された `Create` を通し、検証の結果が返る。
+
+```csharp
+Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
+```
+
 ### Result
 
 ```csharp
