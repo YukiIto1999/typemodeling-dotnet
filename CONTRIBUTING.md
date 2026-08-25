@@ -40,7 +40,7 @@ devenv が .NET SDK と検証入口を管理する。作業前にリポジトリ
 ## リリース
 
 1. `develop` で `CHANGELOG.md` に該当バージョンの節を追記(セマンティックバージョニング)
-2. `chore: release X.Y.Z` でコミットし `develop` へマージ
+2. `chore: X.Y.Z のリリースを準備` でコミットし `develop` へマージ
 3. `main` を該当コミットへ進め、`vX.Y.Z` タグを付ける
 
 registry への配布は行わない。利用側は checkout したリポジトリのリリースタグを参照する。
