@@ -27,11 +27,11 @@ devenv が .NET SDK と検証入口を管理する。作業前にリポジトリ
 
 ## マージ
 
-`develop` へは `--no-ff` でマージし、マージコミットも `chore: <作業名>の枝を統合` の同じ形式で書く(フックがマージコミットにも一行の `型: 要約` を求める)。作業ブランチはマージ後に削除する。
+フックはマージコミットにも一行の `型: 要約` を求めるため、`develop` へは `--no-ff` でマージし、マージコミットは `chore: <作業名>の枝を統合` と書く。作業ブランチはマージ後に削除する。
 
 ## 検証
 
-マージ前にリポジトリの root で `devenv shell verify` を通す。build が警告 0、全テストが緑、mutation testing(mutation-dotnet)が基準を満たすことを条件にする。
+マージ前にリポジトリの root で `devenv shell verify` を通す。build が警告 0、全テストが緑、mutation-dotnet の mutation testing が基準を満たすことを条件にする。
 
 ## 文書
 
