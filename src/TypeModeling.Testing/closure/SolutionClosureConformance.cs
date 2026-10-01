@@ -40,23 +40,11 @@ public static class SolutionClosureConformance
             .ToArray();
     }
 
-    /// <summary>repository 内に存在する全 project の相対パスの列挙</summary>
-    /// <remarks>reparse point の配下と bin/obj の配下は列挙しない</remarks>
+    /// <summary>repository が所有する project の相対パス列挙</summary>
     /// <param name="repoRoot">検査対象 repository の絶対パス</param>
     /// <returns>序数比較で整列した相対パス</returns>
     public static IReadOnlyList<string> RepoProjectPaths(string repoRoot) =>
-        Directory.EnumerateFiles(
-                repoRoot,
-                "*.csproj",
-                new EnumerationOptions
-                {
-                    RecurseSubdirectories = true,
-                    AttributesToSkip = FileAttributes.ReparsePoint,
-                })
-            .Select(path => Path.GetRelativePath(repoRoot, path).Replace('\\', '/'))
-            .Where(path => !path.Split('/').Any(segment => segment is "bin" or "obj"))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
+        RepoProjectInventory.ProjectPaths(repoRoot);
 
     /// <summary>閉じた型階層の登録規約への違反</summary>
     /// <param name="closure">ロード済みの solution 閉包</param>

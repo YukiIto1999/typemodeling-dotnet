@@ -19,17 +19,17 @@
     "mutation-dotnet": {
       "flake": false,
       "locked": {
-        "lastModified": 1790841231,
-        "narHash": "sha256-MFH24/7m1PDG3G3vjoNZyhG+q4aLjt9jbznY29MG3UE=",
+        "lastModified": 1790856086,
+        "narHash": "sha256-mjCfoZhHYIL9k4e4jhkt53n876Djo1B3SPpKrtC+s8c=",
         "owner": "YukiIto1999",
         "repo": "mutation-dotnet",
-        "rev": "ea3904b2d3e598791f53ae8d621d55a1c9eac20a",
+        "rev": "3604edb159c72ef7d14c12922cc48d984cee409b",
         "type": "github"
       },
       "original": {
         "owner": "YukiIto1999",
         "repo": "mutation-dotnet",
-        "rev": "ea3904b2d3e598791f53ae8d621d55a1c9eac20a",
+        "rev": "3604edb159c72ef7d14c12922cc48d984cee409b",
         "type": "github"
       }
     },

@@ -42,6 +42,57 @@ public sealed class SolutionClosureConformanceInventoryTests
         }
     }
 
+    /// <summary>git が除外する生成 project を repo 棚卸しに含めない規約</summary>
+    [Test]
+    public async Task Repo_project_paths_respect_git_ignored_directories()
+    {
+        var root = Directory.CreateTempSubdirectory("typemodeling-git-projects-").FullName;
+        try
+        {
+            var gitPath = (Environment.GetEnvironmentVariable("PATH") ?? "")
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Select(directory => Path.Combine(directory, OperatingSystem.IsWindows() ? "git.exe" : "git"))
+                .First(File.Exists);
+            var start = new System.Diagnostics.ProcessStartInfo(gitPath)
+            {
+                WorkingDirectory = root,
+                ArgumentList = { "init", "-q" },
+                RedirectStandardError = true,
+            };
+            foreach (var name in start.Environment.Keys.Where(name =>
+                         name.StartsWith("GIT_", StringComparison.Ordinal)).ToArray())
+                start.Environment.Remove(name);
+            using (var git = System.Diagnostics.Process.Start(start)!)
+            {
+                await git.WaitForExitAsync();
+                await Assert.That(git.ExitCode).IsEqualTo(0);
+            }
+
+            await File.WriteAllTextAsync(Path.Combine(root, ".gitignore"), ".devenv/\ngenerated/\n");
+            foreach (var relative in (string[])
+                     [
+                         "src/App/App.csproj",
+                         "orphan/Orphan.csproj",
+                         ".devenv/state/mutation-dotnet/Mutation.csproj",
+                         "generated/Generated.csproj",
+                     ])
+            {
+                var path = Path.Combine(root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await File.WriteAllTextAsync(path, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+            }
+
+            await Assert.That(SolutionClosureConformance.RepoProjectPaths(root)).IsEquivalentTo([
+                "orphan/Orphan.csproj",
+                "src/App/App.csproj",
+            ]);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     /// <summary>閉包にも除外にも属さない repo project の違反報告</summary>
     [Test]
     public async Task An_orphan_repo_project_is_reported()

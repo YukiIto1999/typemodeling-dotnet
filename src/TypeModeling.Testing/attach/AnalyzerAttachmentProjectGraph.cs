@@ -1,3 +1,5 @@
+using TypeModeling.Testing.Closure;
+
 namespace TypeModeling.Testing.Attach;
 
 /// <summary>analyzer attachment 検査対象の project graph</summary>
@@ -43,14 +45,10 @@ internal sealed class AnalyzerAttachmentProjectGraph
     {
         cancellationToken.ThrowIfCancellationRequested();
         var pathComparer = FileSystemPathComparer;
-        var projectPaths = Directory.EnumerateFiles(
-                repoRoot,
-                "*.csproj",
-                SearchOption.AllDirectories)
-            .Where(path => !IsIgnoredPath(repoRoot, path))
+        var projectPaths = RepoProjectInventory.ProjectPaths(repoRoot)
             .ToDictionary(
-                path => Path.GetRelativePath(repoRoot, path).Replace('\\', '/'),
-                Path.GetFullPath,
+                path => path,
+                path => Path.GetFullPath(Path.Combine(repoRoot, path)),
                 pathComparer);
         var evaluations =
             new Dictionary<string, IReadOnlyList<EvaluatedProjectConfiguration>>(
@@ -78,17 +76,6 @@ internal sealed class AnalyzerAttachmentProjectGraph
             projectPaths,
             evaluations,
             projectReferences);
-    }
-
-    /// <summary>検査対象外 directory 配下の判定</summary>
-    /// <param name="repoRoot">repository root の絶対 path</param>
-    /// <param name="path">判定対象 path</param>
-    /// <returns>検査対象外の場合に true</returns>
-    private static bool IsIgnoredPath(string repoRoot, string path)
-    {
-        var relative = Path.GetRelativePath(repoRoot, path).Replace('\\', '/');
-        return relative.Split('/').Any(segment =>
-            segment is "bin" or "obj" or ".git" or "node_modules" or "StrykerOutput");
     }
 
     /// <summary>実行環境に対応する file system path 比較器</summary>

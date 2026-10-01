@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Verification is split by time budget into `devenv shell verify` (build and in-process tests, within 2 minutes), `verify-push` (adds the self-audit tests and mutation testing of changed lines, within 15 minutes), and `verify-full` (adds all TypeModeling.Testing tests and mutation testing of all source projects, not a gate).
 - The mutation gate no longer requires a whole-runtime score of 60; one surviving or uncovered mutant on a line of the runtime or the analyzers changed since the push base fails `verify-push`. TypeModeling.Analyzers and TypeModeling.Testing are now mutation targets as well; TypeModeling.Testing is mutated only by `verify-full`.
-- mutation-dotnet is built from the commit of its v0.3.0 release tag pinned in `devenv.yaml` instead of a sibling checkout, and its `changed-lines` command selects the undetected mutants on changed lines.
+- mutation-dotnet is built from the commit of its v0.3.1 release tag pinned in `devenv.yaml` instead of a sibling checkout, and its `changed-lines` command selects the undetected mutants on changed lines.
 - Cognitive complexity above 15 (SonarAnalyzer S3776) now fails the build.
+- Project inventory and analyzer-attachment self-audits now follow Git's ignore rules, so ignored build and development-environment projects are not treated as repository projects.
 
 ## [0.1.1] - 2026-08-25
 
