@@ -80,28 +80,13 @@ in
     else
       base=$(git merge-base HEAD origin/develop)
     fi
-    diff_text=$(git diff --unified=0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ "$base" -- '*.cs')
-
-    # file(repository の根からの path)ごとの、追加・変更した行の閉区間の列
-    changed=$(printf '%s\n' "$diff_text" | jq --raw-input --null-input '
-      reduce inputs as $line ({header: false, file: null, ranges: {}};
-        if ($line | startswith("diff --git ")) then .header = true | .file = null
-        elif .header and ($line | startswith("+++ ")) then
-          .file = (if $line == "+++ /dev/null" then null else ($line | ltrimstr("+++ b/")) end)
-        elif ($line | startswith("@@ ")) then
-          .header = false
-          | ($line | capture("^@@ -[0-9,]+ \\+(?<start>[0-9]+)(,(?<count>[0-9]+))? @@")) as $hunk
-          | ($hunk.start | tonumber) as $start
-          | (($hunk.count // "1") | tonumber) as $count
-          | if .file != null and $count > 0 then .ranges[.file] += [[$start, $start + $count - 1]] else . end
-        else . end)
-      | .ranges')
 
     projects=()
     test_projects=()
     while read -r project test_project; do
       [ -n "$project" ] || continue
-      if jq --exit-status --arg dir "$(dirname "$project")/" 'keys | any(startswith($dir))' <<<"$changed" >/dev/null; then
+      changed=$(git diff --name-only --no-renames --diff-filter=d "$base" -- "$(dirname "$project")/*.cs")
+      if [ -n "$changed" ]; then
         projects+=("$project")
         test_projects+=("$test_project")
       fi
@@ -120,22 +105,9 @@ in
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
       --since "$base" --output "$output" --with-baseline
 
-    # --since は file で絞るので、変更した行に位置する mutant を report から取り出し、生存と未被覆を数える
-    on_changed_lines=$(jq --arg top "$(git rev-parse --show-toplevel)/" --argjson changed "$changed" '
-      (.projectRoot | rtrimstr("/")) as $root
-      | [.files | to_entries[]
-          | ($root + "/" + .key | ltrimstr($top)) as $file
-          | ($changed[$file] // []) as $ranges
-          | .value.mutants[]
-          | . as $mutant
-          | select(any($ranges[]; .[0] <= $mutant.location.end.line and $mutant.location.start.line <= .[1]))
-          | {file: $file, line: .location.start.line, mutator: .mutatorName, replacement, status}]' "$report")
-    undetected=$(jq '[.[] | select(.status == "Survived" or .status == "NoCoverage")]' <<<"$on_changed_lines")
-    echo "mutation-changed-lines: 変更した行の mutant $(jq length <<<"$on_changed_lines") 件、未検出 $(jq length <<<"$undetected") 件(基点 $base)"
-    if [ "$(jq length <<<"$undetected")" -gt 0 ]; then
-      jq --raw-output '.[] | "  \(.status) \(.file):\(.line) \(.mutator) → \(.replacement)"' <<<"$undetected"
-      exit 1
-    fi
+    # --since は file で絞るので、変更した行に位置する mutant の生存と未被覆は changed-lines が数える。
+    # 未検出があれば 2、報告か差分を読めなければ 1 で終わり、set -e で失敗にする
+    mutation-dotnet changed-lines --report "$report" --since "$base"
   '';
 
   # T3(予算なし、gate にしない): T1、全件の Medium test、全量の mutation。

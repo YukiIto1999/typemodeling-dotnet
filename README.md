@@ -128,7 +128,7 @@ This repository applies its shipped checks to itself ([SelfAuditTests](./tests/T
 - `devenv shell verify-push` (within 15 minutes, before every push) runs `verify`, the self-audit tests, and mutation testing of the runtime and the analyzers on the lines changed since the push base. One surviving or uncovered mutant on a changed line fails it.
 - `devenv shell verify-full` (no budget, not a gate, before every release) runs `verify`, all TypeModeling.Testing tests, which evaluate MSBuild projects on the file system, and mutation testing over all three source projects. Undetected mutants that the previous full run did not report are appended to the backlog.
 
-Mutation testing uses [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet), built from the commit of its v0.2.0 release tag pinned in `devenv.yaml`. Branch, commit, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md), and released changes in [CHANGELOG.md](./CHANGELOG.md).
+Mutation testing uses [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet), built from the commit of its v0.3.0 release tag pinned in `devenv.yaml`; its `changed-lines` command selects the undetected mutants on changed lines for `verify-push`. Branch, commit, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md), and released changes in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Architecture standard
 
