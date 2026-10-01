@@ -31,16 +31,30 @@ devenv が .NET SDK と検証入口を管理する。作業前にリポジトリ
 
 ## 検証
 
-マージ前にリポジトリの root で `devenv shell verify` を通す。build が警告 0、全テストが緑、mutation-dotnet の mutation testing が基準を満たすことを条件にする。
+検証は時間の予算で分けた三つの入口で行い、どれもリポジトリの root で `devenv shell <入口>` として実行する。所要時間が予算を超えた入口は失敗として扱い、その検証をより安い手段へ置き換えるか後の段へ移す。
+
+| 入口          | 段 | 予算  | 実行する時点 | 中身                                                                                                                                         |
+| ------------- | -- | ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify`      | T1 | 2 分  | commit の前  | analyzer の警告をエラー扱いにした build(S3776 の認知的複雑度 15 を含む)、TypeModeling.Tests、TypeModeling.Analyzers.Tests                 |
+| `verify-push` | T2 | 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling と TypeModeling.Analyzers の push の基点から変更した行の mutation(未検出 0 件)                      |
+| `verify-full` | T3 | なし  | release の前 | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation。gate にせず、前回の全量から増えた未検出 mutant を backlog へ追記する |
+
+push の基点は、upstream を持つ枝では upstream との分岐点、持たない枝では `origin/develop` との分岐点とする。基点や差分を取れない実行は失敗とする。
+未検出の mutant は、mutation-dotnet の報告の生存と未被覆の合計で数える。生き残った mutant を直した後は、`devenv shell mutation-changed-lines` で変更した行の mutation だけを再実行できる。
+
+S3776 の既存違反は、git 管理外の基線台帳 `docs/conformance-baseline.json` に記録した member だけを、台帳の id を Justification に書いた `SuppressMessage` で抑止する。台帳に無い member へ抑止を加えない。違反を直したら、その `SuppressMessage` と台帳の行を同じ commit で消す。
+
+マージ前に `verify` と `verify-push` を通す。
 
 ## 文書
 
-公開する文書は README(英語)・README.ja(日本語)・CHANGELOG(英語)・CONTRIBUTING・LICENSE に限る。設計メモと決定の記録は git 管理外の `docs/` に置く。公開文書の日本語は体言止めを基調にする。
+公開する文書は README(英語)・README.ja(日本語)・CHANGELOG(英語)・CONTRIBUTING・LICENSE に限る。設計メモ、決定の記録(`docs/decisions/`)、基線台帳(`docs/conformance-baseline.json`)、mutation の backlog(`docs/backlog/`)は git 管理外の `docs/` に置く。公開文書の日本語は体言止めを基調にする。
 
 ## リリース
 
-1. `develop` で `CHANGELOG.md` に該当バージョンの節を追記(セマンティックバージョニング)
-2. `chore: X.Y.Z のリリースを準備` でコミットし `develop` へマージ
-3. `main` を該当コミットへ進め、`vX.Y.Z` タグを付ける
+1. `develop` で `devenv shell verify-full` を実行し、`docs/backlog/mutation.md` へ追記された未検出 mutant をテストまたは仕様の修正候補として確かめる
+2. `CHANGELOG.md` に該当バージョンの節を追記(セマンティックバージョニング)
+3. `chore: X.Y.Z のリリースを準備` でコミットし `develop` へマージ
+4. `main` を該当コミットへ進め、`vX.Y.Z` タグを付ける
 
 registry への配布は行わない。利用側は checkout したリポジトリのリリースタグを参照する。

@@ -122,7 +122,13 @@ await Assert.That(violations).IsEmpty();
 
 ## 開発
 
-このリポジトリは、出荷する検査を自分自身へ適用する([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs))。`devenv shell verify` が build、全テスト、runtime 全域の mutation testing を一括実行する。mutation のゲートには [mutation-dotnet](../mutation-dotnet) を使う。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
+このリポジトリは、出荷する検査を自分自身へ適用する([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs))。検証は、時間の予算で分けた devenv の三つの入口で行う。
+
+- `devenv shell verify`(2 分以内、commit の前)が、analyzer の警告をエラー扱いにした build と、runtime と analyzer の同一プロセス内のテストを実行する。build は関数の認知的複雑度(SonarAnalyzer の S3776、上限 15)も判定する
+- `devenv shell verify-push`(15 分以内、push の前)が、`verify`、自己監査のテスト、push の基点から変更した行への runtime と analyzer の mutation testing を実行する。変更した行に生存または未被覆の mutant が一件でもあれば失敗する
+- `devenv shell verify-full`(予算なし、gate にしない、release の前)が、`verify`、filesystem 上で MSBuild project を評価する TypeModeling.Testing のテストの全件、三つの source project 全量の mutation testing を実行し、前回の全量に無かった未検出 mutant を backlog へ追記する
+
+mutation testing には、`devenv.yaml` で v0.2.0 の release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使う。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
 
 ## ライセンス
 
