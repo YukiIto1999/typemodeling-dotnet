@@ -1,3 +1,10 @@
 inputs:
   nixpkgs:
     url: github:NixOS/nixpkgs/nixpkgs-unstable
+  # mutation-dotnet v0.2.0 と、その build が相対参照する typemodeling-dotnet v0.1.1。release タグが指す commit で固定する
+  mutation-dotnet:
+    url: github:YukiIto1999/mutation-dotnet/dc1df78162e295303529888fa2eedd456dba5736
+    flake: false
+  mutation-dotnet-upstream:
+    url: github:YukiIto1999/typemodeling-dotnet/e904407a0812bcafe696cd04b7d804f72179f211
+    flake: false

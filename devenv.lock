@@ -16,6 +16,40 @@
         "type": "github"
       }
     },
+    "mutation-dotnet": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789963179,
+        "narHash": "sha256-tqbTEi0MBOcIZxUmOCjwvFTmxQ+l9cbxdDhd4FwNyWc=",
+        "owner": "YukiIto1999",
+        "repo": "mutation-dotnet",
+        "rev": "dc1df78162e295303529888fa2eedd456dba5736",
+        "type": "github"
+      },
+      "original": {
+        "owner": "YukiIto1999",
+        "repo": "mutation-dotnet",
+        "rev": "dc1df78162e295303529888fa2eedd456dba5736",
+        "type": "github"
+      }
+    },
+    "mutation-dotnet-upstream": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787678604,
+        "narHash": "sha256-4Gn9pRVYUY5yk7TF6KXB32+ZXFM/RA7Raljj86CPd24=",
+        "owner": "YukiIto1999",
+        "repo": "typemodeling-dotnet",
+        "rev": "e904407a0812bcafe696cd04b7d804f72179f211",
+        "type": "github"
+      },
+      "original": {
+        "owner": "YukiIto1999",
+        "repo": "typemodeling-dotnet",
+        "rev": "e904407a0812bcafe696cd04b7d804f72179f211",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1781173989,
@@ -34,6 +68,8 @@
     "root": {
       "inputs": {
         "devenv": "devenv",
+        "mutation-dotnet": "mutation-dotnet",
+        "mutation-dotnet-upstream": "mutation-dotnet-upstream",
         "nixpkgs": "nixpkgs"
       }
     }
