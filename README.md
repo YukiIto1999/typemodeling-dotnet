@@ -130,6 +130,13 @@ This repository applies its shipped checks to itself ([SelfAuditTests](./tests/T
 
 Mutation testing uses [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet), built from the commit of its v0.2.0 release tag pinned in `devenv.yaml`. Branch, commit, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md), and released changes in [CHANGELOG.md](./CHANGELOG.md).
 
+## Architecture standard
+
+The architecture standard is at `/home/nixos/environment/architecture-standard`.
+Conformance is always judged against the current text of the standard.
+Application follows the four rules of application and the usage procedures in the standard's README.
+Decision records are kept in `docs/decisions/`, outside version control.
+
 ## License
 
 MIT

@@ -130,6 +130,13 @@ await Assert.That(violations).IsEmpty();
 
 mutation testing には、`devenv.yaml` で v0.2.0 の release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使う。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
 
+## アーキテクチャの標準
+
+アーキテクチャの標準は `/home/nixos/environment/architecture-standard` にある。
+準拠の基準は、常に現在の標準本文である。
+適用は、標準の README の適用の4則と利用の手順に従う。
+決定の記録は git 管理外の `docs/decisions/` にある。
+
 ## ライセンス
 
 MIT
