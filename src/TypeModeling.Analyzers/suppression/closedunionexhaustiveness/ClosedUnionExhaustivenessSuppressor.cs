@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -37,6 +38,8 @@ public sealed class ClosedUnionExhaustivenessSuppressor : DiagnosticSuppressor
 
     /// <summary>閉じた型集合に対する switch 式診断の抑止報告</summary>
     /// <param name="context">抑止解析 context</param>
+    [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "S3776 の導入前からある複雑度 16 の既存違反。基線台帳 S3776-004 に記録し、15 以下へ分割した時点で抑止を外す")]
     public override void ReportSuppressions(SuppressionAnalysisContext context)
     {
         foreach (var diagnostic in context.ReportedDiagnostics)

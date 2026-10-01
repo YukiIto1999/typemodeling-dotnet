@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -23,6 +24,8 @@ internal static class ClosedOriginFinder
     /// <param name="controlFlowGraph">到達値解析の制御フロー</param>
     /// <param name="visited">訪問済み local use</param>
     /// <returns>到達可能な閉集合</returns>
+    [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "S3776 の導入前からある複雑度 16 の既存違反。基線台帳 S3776-001 に記録し、15 以下へ分割した時点で抑止を外す")]
     private static ITypeSymbol? Find(
         IOperation operation,
         ControlFlowGraph controlFlowGraph,

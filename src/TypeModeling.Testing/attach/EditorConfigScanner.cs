@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 
 namespace TypeModeling.Testing.Attach;
@@ -10,6 +11,8 @@ internal static class EditorConfigScanner
     /// <param name="evaluation">評価済み project 構成</param>
     /// <param name="matcher">保護対象診断の照合器</param>
     /// <param name="violations">違反の追加先</param>
+    [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "S3776 の導入前からある複雑度 22 の既存違反。基線台帳 S3776-005 に記録し、15 以下へ分割した時点で抑止を外す")]
     internal static void AddViolations(
         string repoRoot,
         EvaluatedProjectConfiguration evaluation,

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -45,6 +46,8 @@ internal sealed class ReachingLocalValueAnalysis
     /// <param name="operation">解析対象の operation</param>
     /// <param name="incoming">operation 直前の状態</param>
     /// <returns>operation 通過後の状態</returns>
+    [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "S3776 の導入前からある複雑度 20 の既存違反。基線台帳 S3776-003 に記録し、15 以下へ分割した時点で抑止を外す")]
     internal ReachingLocalFlowState AnalyzeOperation(
         IOperation operation,
         ReachingLocalFlowState incoming)

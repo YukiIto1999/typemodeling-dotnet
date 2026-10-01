@@ -4,6 +4,7 @@ root = true
 dotnet_diagnostic.S104.severity = error
 dotnet_diagnostic.S138.severity = error
 dotnet_diagnostic.S134.severity = error
+dotnet_diagnostic.S3776.severity = error
 
 # 構築不能が機能の bottom 型。private ctor の不使用と非公開はこの型の目的。
 [src/TypeModeling/domain/Never.cs]
