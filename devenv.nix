@@ -103,9 +103,9 @@ in
     mutation-dotnet run \
       --project "$(IFS=,; echo "''${projects[*]}")" \
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
-      --since "$base" --output "$output" --with-baseline
+      --since "$base" --changed-lines --output "$output" --with-baseline
 
-    # --since は file で絞るので、変更した行に位置する mutant の生存と未被覆は changed-lines が数える。
+    # --changed-lines は変更した行に重なる mutant だけを生成し、その生存と未被覆は changed-lines が数える。
     # 未検出があれば 2、報告か差分を読めなければ 1 で終わり、set -e で失敗にする
     mutation-dotnet changed-lines --report "$report" --since "$base"
   '';

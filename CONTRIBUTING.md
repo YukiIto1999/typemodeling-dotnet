@@ -40,7 +40,7 @@ devenv が .NET SDK と検証入口を管理する。作業前にリポジトリ
 | `verify-full` | T3 | なし  | release の前 | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation。gate にせず、前回の全量から増えた未検出 mutant を backlog へ追記する |
 
 push の基点は、upstream を持つ枝では upstream との分岐点、持たない枝では `origin/develop` との分岐点とする。基点や差分を取れない実行は失敗とする。
-変更した行の未検出の mutant は、mutation-dotnet の `changed-lines` command が報告の生存と未被覆の合計で数える。生き残った mutant を直した後は、`devenv shell mutation-changed-lines` で変更した行の mutation だけを再実行できる。
+変更した行の mutation は、mutation-dotnet の `--changed-lines` で変更した行に重なる mutant だけを生成し、その未検出を `changed-lines` command が報告の生存と未被覆の合計で数える。生き残った mutant を直した後は、`devenv shell mutation-changed-lines` で変更した行の mutation だけを再実行できる。
 
 S3776 の既存違反は、git 管理外の基線台帳 `docs/conformance-baseline.json` に記録した member だけを、台帳の id を Justification に書いた `SuppressMessage` で抑止する。台帳に無い member へ抑止を加えない。違反を直したら、その `SuppressMessage` と台帳の行を同じ commit で消す。
 
