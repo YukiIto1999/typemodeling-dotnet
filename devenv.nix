@@ -83,12 +83,22 @@ in
       base=$(git merge-base HEAD origin/develop)
     fi
 
+    # 検証入口か project に属さない build の入力の変更時の全対の mutation
+    listed=$(git diff --name-only --no-renames "$base" -- && git ls-files --others --exclude-standard)
+    entry_changed=0
+    while IFS= read -r file; do
+      case $file in
+      "" | src/* | tests/* | docs/* | *.md | LICENSE | .gitignore) ;;
+      *) entry_changed=1 ;;
+      esac
+    done <<<"$listed"
+
     projects=()
     test_projects=()
     while read -r project test_project; do
       [ -n "$project" ] || continue
       changed=$(git diff --name-only --no-renames --diff-filter=d "$base" -- "$(dirname "$project")/*.cs")
-      if [ -n "$changed" ]; then
+      if [ "$entry_changed" = 1 ] || [ -n "$changed" ]; then
         projects+=("$project")
         test_projects+=("$test_project")
       fi
