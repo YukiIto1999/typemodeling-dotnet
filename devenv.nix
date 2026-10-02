@@ -12,6 +12,8 @@ let
   fullMutationPairs = pushMutationPairs + ''
     src/TypeModeling.Testing/TypeModeling.Testing.csproj tests/TypeModeling.Testing.Tests/TypeModeling.Testing.Tests.csproj
   '';
+  # mutation の worker 数。既定の論理 core の半分では、作業機で並行する検証と合わせてメモリが逼迫する
+  mutationConcurrency = "2";
 in
 {
   packages = [
@@ -103,7 +105,7 @@ in
     mutation-dotnet run \
       --project "$(IFS=,; echo "''${projects[*]}")" \
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
-      --since "$base" --changed-lines --output "$output" --with-baseline
+      --since "$base" --changed-lines --output "$output" --with-baseline --concurrency ${mutationConcurrency}
 
     # --changed-lines は変更した行に重なる mutant だけを生成し、その生存と未被覆は changed-lines が数える。
     # 未検出があれば 2、報告か差分を読めなければ 1 で終わり、set -e で失敗にする
@@ -138,7 +140,7 @@ in
     mutation-dotnet run \
       --project "$(IFS=,; echo "''${projects[*]}")" \
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
-      --output "$output" --with-baseline
+      --output "$output" --with-baseline --concurrency ${mutationConcurrency}
 
     # 変異の生成が 0 件の全量は対象の指定が外れている
     generated=$(jq '[.files[].mutants[]] | length' "$report")
