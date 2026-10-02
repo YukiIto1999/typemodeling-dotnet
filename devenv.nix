@@ -12,6 +12,8 @@ let
   fullMutationPairs = pushMutationPairs + ''
     src/TypeModeling.Testing/TypeModeling.Testing.csproj tests/TypeModeling.Testing.Tests/TypeModeling.Testing.Tests.csproj
   '';
+  # mutation の worker 数。既定の論理 core の半分では、作業機で並行する検証と合わせてメモリが逼迫する
+  mutationConcurrency = "2";
 in
 {
   packages = [
@@ -81,12 +83,22 @@ in
       base=$(git merge-base HEAD origin/develop)
     fi
 
+    # 検証入口か project に属さない build の入力の変更時の全対の mutation
+    listed=$(git diff --name-only --no-renames "$base" -- && git ls-files --others --exclude-standard)
+    entry_changed=0
+    while IFS= read -r file; do
+      case $file in
+      "" | src/* | tests/* | docs/* | *.md | LICENSE | .gitignore) ;;
+      *) entry_changed=1 ;;
+      esac
+    done <<<"$listed"
+
     projects=()
     test_projects=()
     while read -r project test_project; do
       [ -n "$project" ] || continue
       changed=$(git diff --name-only --no-renames --diff-filter=d "$base" -- "$(dirname "$project")/*.cs")
-      if [ -n "$changed" ]; then
+      if [ "$entry_changed" = 1 ] || [ -n "$changed" ]; then
         projects+=("$project")
         test_projects+=("$test_project")
       fi
@@ -103,9 +115,9 @@ in
     mutation-dotnet run \
       --project "$(IFS=,; echo "''${projects[*]}")" \
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
-      --since "$base" --output "$output" --with-baseline
+      --since "$base" --changed-lines --output "$output" --with-baseline --concurrency ${mutationConcurrency}
 
-    # --since は file で絞るので、変更した行に位置する mutant の生存と未被覆は changed-lines が数える。
+    # --changed-lines は変更した行に重なる mutant だけを生成し、その生存と未被覆は changed-lines が数える。
     # 未検出があれば 2、報告か差分を読めなければ 1 で終わり、set -e で失敗にする
     mutation-dotnet changed-lines --report "$report" --since "$base"
   '';
@@ -138,7 +150,7 @@ in
     mutation-dotnet run \
       --project "$(IFS=,; echo "''${projects[*]}")" \
       --test-project "$(IFS=,; echo "''${test_projects[*]}")" \
-      --output "$output" --with-baseline
+      --output "$output" --with-baseline --concurrency ${mutationConcurrency}
 
     # 変異の生成が 0 件の全量は対象の指定が外れている
     generated=$(jq '[.files[].mutants[]] | length' "$report")

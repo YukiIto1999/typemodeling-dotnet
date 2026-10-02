@@ -128,7 +128,7 @@ await Assert.That(violations).IsEmpty();
 - `devenv shell verify-push`(15 分以内、push の前)が、`verify`、自己監査のテスト、push の基点から変更した行への runtime と analyzer の mutation testing を実行する。変更した行に生存または未被覆の mutant が一件でもあれば失敗する
 - `devenv shell verify-full`(予算なし、gate にしない、release の前)が、`verify`、filesystem 上で MSBuild project を評価する TypeModeling.Testing のテストの全件、三つの source project 全量の mutation testing を実行し、前回の全量に無かった未検出 mutant を backlog へ追記する
 
-mutation testing には、`devenv.yaml` で v0.3.0 の release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使い、`verify-push` の変更した行の未検出 mutant はその `changed-lines` command で取り出す。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
+mutation testing には、`devenv.yaml` で v0.4.1 の release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使い、`verify-push` ではその `--changed-lines` で変更した行の mutant だけを生成し、未検出の mutant を `changed-lines` command で取り出す。枝と commit と release の規約は [CONTRIBUTING.md](./CONTRIBUTING.md) に、版の記録は [CHANGELOG.md](./CHANGELOG.md) に置く。
 
 ## アーキテクチャの標準
 
