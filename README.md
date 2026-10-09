@@ -116,6 +116,21 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
 await Assert.That(violations).IsEmpty();
 ```
 
+Several checks can be bundled into `AnalyzerAttachmentCheck` and judged in one scan.
+Project evaluation and compilation do not depend on the detector, so scanning once per check compiles the same project once per check.
+Passing `cacheDirectory` reuses a detector's verdict while the project's sources, references and build definitions are unchanged, and recompiles only the projects that changed.
+
+```csharp
+var results = await AnalyzerAttachmentConformance.ViolationsAsync(
+    repoRoot,
+    [
+        new AnalyzerAttachmentCheck(typeModelingRequirement, new ClosedTypeUsageDetector()),
+        new AnalyzerAttachmentCheck(otherRequirement, otherDetector),
+    ],
+    cacheDirectory: ".cache/attach-verdicts",
+    CancellationToken.None);
+```
+
 ## Dependencies
 
 The runtime `src/TypeModeling/` depends on no other library; effectsystem-dotnet references it. Only the check executor `src/TypeModeling.Testing/` depends on Roslyn's Microsoft.CodeAnalysis.CSharp, for MSBuild evaluation and probe compilation.
