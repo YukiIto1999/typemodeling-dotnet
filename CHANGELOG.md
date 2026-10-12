@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
+### Added
+
+- `AnalyzerAttachmentCheck` bundles several detector checks so that `AnalyzerAttachmentConformance.ViolationsAsync` judges them in one scan of the repository projects, instead of evaluating and compiling every project once per check.
+- `cacheDirectory` makes `ViolationsAsync` reuse a detector's verdict while a project's sources, references and build definitions are unchanged, and recompile only the projects that changed. It is optional and off by default.
+
 ### Changed
 
 - Verification is split by time budget into `devenv shell verify` (build and in-process tests, within 2 minutes), `verify-push` (adds the self-audit tests and mutation testing of changed lines, within 15 minutes), and `verify-full` (adds all TypeModeling.Testing tests and mutation testing of all source projects, not a gate).
