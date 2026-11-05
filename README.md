@@ -12,7 +12,7 @@ In plain C#, exhaustive matching over a discriminated union collapses through th
 
 - `[ClosedUnion]` writes discriminated unions with external derivation sealed off, and `[ValueObject<TUnderlying>]` writes value objects that only allow validated construction — both close to a language feature.
 - `Result<TValue, TFailure>`, `Unit`, and `Never` express success and failure of pure computation in types.
-- The compile-time engine (TYPMOD001, TYPMOD002, and the exhaustiveness suppressor) enforces the discrimination and construction discipline at build time.
+- The compile-time engine (TYPMOD002 and the exhaustiveness suppressor) enforces the discrimination and construction discipline at build time.
 - [TypeModeling.Testing](./src/TypeModeling.Testing/) executes closure and attach obligations from declarations alone.
 
 ## Installation
@@ -107,7 +107,7 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
     repoRoot,
     new AnalyzerAttachmentRequirement(
         AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD001" },
+        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD002" },
         ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
         ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
         ProtectedDiagnosticCategories: new HashSet<string>()),

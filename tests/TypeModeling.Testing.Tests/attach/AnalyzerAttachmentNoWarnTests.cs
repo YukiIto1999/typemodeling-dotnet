@@ -39,7 +39,7 @@ public sealed class AnalyzerAttachmentNoWarnTests
     /// <summary>NoWarn による保護対象診断の抑止拒否</summary>
     /// <param name="diagnosticId">NoWarn に指定する診断 ID または prefix wildcard</param>
     [Test]
-    [Arguments("TYPMOD001")]
+    [Arguments("TYPMOD002")]
     [Arguments("TYPMOD*")]
     [Arguments("TCSSUP001")]
     [Arguments("TCSSUP*")]

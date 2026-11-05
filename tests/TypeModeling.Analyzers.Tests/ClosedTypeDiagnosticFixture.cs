@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using TypeModeling.Analyzers.Diagnostics.ClosedUnionSwitchStatement;
 using TypeModeling.Analyzers.Suppression.ClosedUnionExhaustiveness;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
@@ -38,9 +37,7 @@ internal static class ClosedTypeDiagnosticFixture
             logAnalyzerExecutionTime: false,
             reportSuppressedDiagnostics: true);
         var withAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(
-                new ClosedUnionExhaustivenessSuppressor(),
-                new ClosedUnionSwitchStatementAnalyzer()), options);
+            ImmutableArray.Create<DiagnosticAnalyzer>(new ClosedUnionExhaustivenessSuppressor()), options);
 
         return await withAnalyzers.GetAllDiagnosticsAsync();
     }

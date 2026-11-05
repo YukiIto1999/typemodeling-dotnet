@@ -12,7 +12,7 @@ TypeModeling は、不正な状態を型で表現できなくする C# の型モ
 
 - `[ClosedUnion]` が外部派生を封じた判別共用体を、`[ValueObject<TUnderlying>]` が検証を経た構築だけを許す値オブジェクトを、言語機能のように書かせる
 - `Result<TValue, TFailure>` と `Unit` と `Never` が純粋な計算の成功と失敗を型に現す
-- compile-time engine(TYPMOD001 と TYPMOD002 と網羅の suppressor)が、判別と生成の規律を build で強制する
+- compile-time engine(TYPMOD002 と網羅の suppressor)が、判別と生成の規律を build で強制する
 - [TypeModeling.Testing](./src/TypeModeling.Testing/) が、閉包と attach の設営義務を宣言だけで実行する
 
 ## 取り込み
@@ -107,7 +107,7 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
     repoRoot,
     new AnalyzerAttachmentRequirement(
         AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD001" },
+        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD002" },
         ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
         ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
         ProtectedDiagnosticCategories: new HashSet<string>()),

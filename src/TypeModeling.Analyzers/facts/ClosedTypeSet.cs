@@ -11,59 +11,28 @@ internal static class ClosedTypeSet
     private const string ClosedUnionAttributeMetadataName =
         "TypeModeling.Domain.ClosedUnionAttribute";
 
-    /// <summary>JsonPolymorphic attribute の metadata 名</summary>
-    private const string JsonPolymorphicAttributeMetadataName =
-        "System.Text.Json.Serialization.JsonPolymorphicAttribute";
-
-    /// <summary>JsonDerivedType attribute の metadata 名</summary>
-    private const string JsonDerivedTypeAttributeMetadataName =
-        "System.Text.Json.Serialization.JsonDerivedTypeAttribute";
-
     /// <summary>suppressor が閉集合として扱う型の判定</summary>
     /// <param name="type">検査対象の型</param>
     /// <returns>suppressor の閉集合として扱う場合に true</returns>
     internal static bool IsClosed(ITypeSymbol type) =>
-        TryGetClosedUnionDefinition(type, out _) ||
-        JsonDerivedTypeDefinitions(type).Length > 0;
+        TryGetClosedUnionDefinition(type, out _);
 
     /// <summary>閉集合に属する variant 定義</summary>
     /// <param name="type">検査対象の型</param>
     /// <returns>閉集合に属する variant 定義</returns>
     internal static ImmutableArray<INamedTypeSymbol> Variants(ITypeSymbol type)
     {
-        if (TryGetClosedUnionDefinition(type, out var unionDefinition))
-        {
-            return unionDefinition
-                .GetTypeMembers()
-                .Where(nested =>
-                    nested.TypeKind == TypeKind.Class &&
-                    nested.IsSealed &&
-                    InheritsFrom(nested, unionDefinition))
-                .Select(variant => variant.OriginalDefinition)
-                .ToImmutableArray();
-        }
+        if (!TryGetClosedUnionDefinition(type, out var unionDefinition))
+            return [];
 
-        return JsonDerivedTypeDefinitions(type);
-    }
-
-    /// <summary>型が属する最上位の閉集合</summary>
-    /// <param name="type">検査対象の型</param>
-    /// <returns>正規化した閉集合</returns>
-    internal static ITypeSymbol? Canonical(ITypeSymbol? type)
-    {
-        ITypeSymbol? closed = null;
-        for (var current = type; current is not null; current = current.BaseType)
-        {
-            if (IsClosed(current))
-                closed = current;
-        }
-
-        if (closed is not null || type is not INamedTypeSymbol named)
-            return closed;
-
-        return named.AllInterfaces
-            .Where(IsClosed)
-            .FirstOrDefault();
+        return unionDefinition
+            .GetTypeMembers()
+            .Where(nested =>
+                nested.TypeKind == TypeKind.Class &&
+                nested.IsSealed &&
+                InheritsFrom(nested, unionDefinition))
+            .Select(variant => variant.OriginalDefinition)
+            .ToImmutableArray();
     }
 
     /// <summary>ClosedUnion attribute を持つ基底定義の取得</summary>
@@ -86,31 +55,6 @@ internal static class ClosedTypeSet
 
         definition = null!;
         return false;
-    }
-
-    /// <summary>JSON polymorphism で宣言した派生型定義</summary>
-    /// <param name="type">検査対象の型</param>
-    /// <returns>JSON polymorphism で宣言した派生型定義</returns>
-    private static ImmutableArray<INamedTypeSymbol> JsonDerivedTypeDefinitions(ITypeSymbol type)
-    {
-        if (type is not INamedTypeSymbol named)
-            return [];
-
-        var definition = named.OriginalDefinition;
-        if (!definition.GetAttributes().Any(attribute =>
-                attribute.AttributeClass?.ToDisplayString() == JsonPolymorphicAttributeMetadataName))
-        {
-            return [];
-        }
-
-        return [.. definition.GetAttributes()
-            .Where(attribute =>
-                attribute.AttributeClass?.ToDisplayString() == JsonDerivedTypeAttributeMetadataName &&
-                attribute.ConstructorArguments.Length > 0)
-            .Select(attribute => attribute.ConstructorArguments[0].Value)
-            .OfType<INamedTypeSymbol>()
-            .Select(variant => variant.OriginalDefinition)
-            .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)];
     }
 
     /// <summary>候補型が基底定義を継承するかの判定</summary>

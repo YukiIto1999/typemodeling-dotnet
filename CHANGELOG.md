@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed
+
+- TYPMOD001, which rejected switch statements over closed types, is removed. C# 15 does not restrict switch statements over closed hierarchies, so the analyzer rejected code that the language accepts.
+- The exhaustiveness suppressor no longer treats a `[JsonPolymorphic]` hierarchy as a closed set. C# 15 does not close a hierarchy by its JSON registrations, so a switch that relied on it stopped being exhaustive after migration.
+
 ## [0.2.0] - 2026-10-12
 
 ### Added

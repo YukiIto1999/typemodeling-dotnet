@@ -12,7 +12,7 @@ public sealed class AnalyzerAttachmentPragmaTests
     /// <summary>restore のない保護対象 pragma の拒否</summary>
     /// <param name="diagnosticId">pragma に指定する診断 ID または prefix wildcard</param>
     [Test]
-    [Arguments("TYPMOD001")]
+    [Arguments("TYPMOD002")]
     [Arguments("TYPMOD*")]
     [Arguments("TCSSUP001")]
     [Arguments("TCSSUP*")]
@@ -38,13 +38,13 @@ public sealed class AnalyzerAttachmentPragmaTests
         using var fixture = new TemporaryAnalyzerAttachmentFixture();
         fixture.WriteConsumerSource(
             TemporaryAnalyzerAttachmentFixture.ClosedTypeDeclarations + Environment.NewLine + """
-            // #pragma warning disable TYPMOD001
+            // #pragma warning disable TYPMOD002
             #if false
             #pragma warning disable TCSSUP001
             #endif
-            #pragma warning disable TYPMOD001
+            #pragma warning disable TYPMOD002
             internal sealed class ScopedPragmaProbe;
-            #pragma warning restore TYPMOD001
+            #pragma warning restore TYPMOD002
             """);
         fixture.WriteEditorConfig("""
             root = true
