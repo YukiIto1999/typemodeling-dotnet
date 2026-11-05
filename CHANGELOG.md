@@ -54,11 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- The mutation-testing gate in `devenv shell verify` now runs [mutation-dotnet](../mutation-dotnet) instead of Stryker.NET.
+- The mutation-testing gate in `devenv shell verify` now runs [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) instead of Stryker.NET.
 
 ## [0.1.0] - 2026-07-24
 
-First version after becoming independent from tcs-ocr-beta.
+First version.
 
 ### Added
 

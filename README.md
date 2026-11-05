@@ -2,22 +2,28 @@
 
 # TypeModeling
 
-TypeModeling is a C# type-modeling foundation that makes invalid states unrepresentable. This document is for consuming developers and covers installation and usage.
+TypeModeling is a C# 14 library that provides the type features of C# 15 and later in the same form, together with type features from Rust and F#.
+Code written with it moves to the language features by a mechanical rewrite, and the table below names that rewrite for each feature.
+This README is for developers who use the library in their projects.
 
-## Problem
+## Features
 
-In plain C#, exhaustive matching over a discriminated union collapses through the default branch, and nothing stops values from being constructed without validation. A missing registration or an out-of-hierarchy derivation stays invisible until it becomes a serialization exception at run time.
-
-## What it provides
-
-- `[Closed]` writes closed hierarchies with the rules of the C# 15 `closed` modifier, and `[ValueObject<TUnderlying>]` writes value objects that only allow validated construction — both close to a language feature.
-- `Result<TValue, TFailure>`, `Unit`, and `Never` express success and failure of pure computation in types.
-- The compile-time engine (TYPMOD002 and the exhaustiveness suppressor) enforces the discrimination and construction discipline at build time.
-- [TypeModeling.Testing](./src/TypeModeling.Testing/) executes closure and attach obligations from declarations alone.
+| Feature | Before C# 15 | In C# 15 and later | Migration |
+|---|---|---|---|
+| Closed hierarchy | `[Closed] public abstract record Shape` | `public closed record Shape` | Replace the attribute with `closed` and remove `abstract` |
+| Closed enum | `[Closed] public enum Color` | `public closed enum Color` (planned for C# 16) | Replace the attribute with `closed` |
+| Union declaration | `[Union] public readonly partial struct Pet` with `public partial Pet(Cat value);` | `public union Pet(Cat, Dog);` | Not required, because C# 15 treats the generated type as a union |
+| Union matching | `pet.Value switch { Cat cat => ... }` | `pet switch { Cat cat => ... }` | Remove `.Value` |
+| Result | `result.Value switch { Succeeded<T>(var value) => ... }` | `result switch { Succeeded<T>(var value) => ... }` | Remove `.Value` |
+| Non-empty list | `NonEmptyList<T>` | Same | None |
+| Value object | `[ValueObject<Guid>] public sealed partial record OrderId` | Same | None |
+| Unit and Never | `Unit`, `Never` | Same | None |
+| Must-use value | `[MustUse]` | Same | None |
 
 ## Installation
 
-Check out the repository into the same workspace and reference it by relative path. Pin the version with a `vX.Y.Z` tag on `main`.
+Check out the repository into the same workspace and reference it by a relative path.
+Pin the version with a `vX.Y.Z` tag on `main`.
 
 ```xml
 <ItemGroup>
@@ -27,11 +33,12 @@ Check out the repository into the same workspace and reference it by relative pa
 </ItemGroup>
 ```
 
-Every project that declares or discriminates closed types attaches the analyzer. Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
+Every project that declares or matches closed types, unions, or results attaches the analyzer, because exhaustiveness and generation run there.
+Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
 
 ## Usage
 
-### Closed
+### Closed hierarchy
 
 ```csharp
 using TypeModeling.Domain;
@@ -43,15 +50,25 @@ public abstract record PaymentState
     public sealed record Pending : PaymentState;
     public sealed record Settled(DateTimeOffset At) : PaymentState;
 }
+
+string text = state switch
+{
+    PaymentState.Pending => "pending",
+    PaymentState.Settled(var at) => $"settled at {at}",
+};
 ```
 
 `[Closed]` corresponds to the C# 15 `closed` modifier.
-Direct subtypes may be declared anywhere in the same assembly, and a switch expression that handles every direct subtype is exhaustive whatever the shape of its patterns.
-To migrate to C# 15, replace the attribute with the `closed` modifier and remove `abstract`.
+Direct subtypes may be declared anywhere in the same assembly, nested or not and sealed or not.
+A switch expression that handles every direct subtype is exhaustive, whatever the shape of its patterns, as in C# 15.
+An arm for the base type after every subtype is unreachable, as in C# 15.
+A closed class from another assembly is exhausted only when that assembly attaches the analyzer, which records the number of its direct subtypes, and every direct subtype is visible, as C# 15 requires.
 
 ### Closed enum
 
 ```csharp
+using TypeModeling.Domain;
+
 [Closed]
 public enum Color
 {
@@ -63,7 +80,7 @@ public enum Color
 
 `[Closed]` on an enum corresponds to the `closed` enum planned for C# 16.
 A switch expression that handles every named member is exhaustive.
-TYPMOD018 requires a member for 0, TYPMOD019 allows a conversion to the enum only from a constant of a declared member, and TYPMOD020 allows an operator that returns the enum only over constants that produce a declared member.
+A closed enum needs a member for 0, converts only from constants of its members, and allows an operator that returns it only over constants that produce a member.
 
 ### Union
 
@@ -86,31 +103,10 @@ string name = pet.Value switch
 ```
 
 The declaration corresponds to the C# 15 union declaration `public union Pet(Cat, Dog);`.
-The generator adds the same members as the C# 15 lowering, namely the constructor bodies, the `Value` property, and `IUnion`, and before C# 15 it also adds the implicit conversions from each case type.
+The generator adds the members of the C# 15 lowering, which are the constructor bodies, the `Value` property, and `IUnion`, and before C# 15 it also adds an implicit conversion from each case type that is not an interface.
 Before .NET 11, it adds `UnionAttribute` and `IUnion` to each assembly as embedded types.
-A switch on `Value` that handles every case type is exhaustive.
-C# 15 treats the generated type as a language union, so a switch can also match the union itself, as in `pet switch { Cat cat => ... }`.
-
-### ValueObject
-
-```csharp
-using TypeModeling.Domain;
-
-[ValueObject<Guid>]
-public sealed partial record OrderId
-{
-    private static Result<Guid, OrderIdFailure> Parse(Guid raw) =>
-        raw == Guid.Empty
-            ? Result.Failed<OrderIdFailure>(new OrderIdFailure.Empty())
-            : Result.Succeeded(raw);
-}
-```
-
-Construction goes through the generated `Create`, which returns the validation result:
-
-```csharp
-Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
-```
+Before C# 15, match a union through its `Value`, because the .NET 10 compiler rejects a property pattern on a union type until C# 15.
+A switch on `Value`, alone or inside a tuple, is exhaustive when it handles every case type.
 
 ### Result
 
@@ -137,14 +133,64 @@ string text = Place(cart).Value switch
 `Result<TValue, TFailure>` is a C# 15 union type whose case types are `Succeeded<TValue>` and `Failed<TFailure>`.
 `Failed<TFailure>` carries only the failure type, so `IsFailed` passes a failure to a result of another value type unchanged.
 `Result.Succeeded` and `Result.Failed` infer the type arguments, and a new failure of a closed hierarchy names its base type, as in `Result.Failed<OrderFailure>(...)`.
-`Map`, `Bind`, `MapFailure`, query expressions, `Match`, `Sequence`, which stops at the first failure, and `Accumulate` and `Zip`, which collect every failure in a `NonEmptyList<TFailure>`, compose results.
-Its internal tag fixes 0 as uninitialized, so observing a `default` result throws, and TYPMOD015 rejects a `default` result at compile time.
-TYPMOD016 rejects casting `Value` to a case type, and TYPMOD017 warns when a result is discarded, as Rust does for `#[must_use]`.
-In C# 15, a switch can match the result itself, as in `result switch { Succeeded<Order>(var order) => ... }`.
+`Map`, `Bind`, `MapFailure`, query expressions, and `Match` compose results.
+`Sequence` stops at the first failure, while `Accumulate` and `Zip` collect every failure in a `NonEmptyList<TFailure>`.
+The internal tag fixes 0 as uninitialized, so observing a `default` result throws.
+
+### Value object
+
+```csharp
+using TypeModeling.Domain;
+
+[ValueObject<Guid>]
+public sealed partial record OrderId
+{
+    private static Result<Guid, OrderIdFailure> Parse(Guid raw) =>
+        raw == Guid.Empty
+            ? Result.Failed<OrderIdFailure>(new OrderIdFailure.Empty())
+            : Result.Succeeded(raw);
+}
+
+Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
+```
+
+The generator adds a private constructor and a `Create` method that returns the result of `Parse`, so an `OrderId` exists only after validation.
+
+### Other types
+
+`NonEmptyList<T>` is an immutable list that has at least one item by construction, and `NonEmptyList.FromSequence` returns `null` for an empty sequence.
+`Unit` is the type of a success without a value, and `Never` is a type that has no value.
+`[MustUse]` on a type or a method makes discarding its value a warning, as `#[must_use]` does in Rust, and `Result` carries it.
+
+## Diagnostics
+
+| ID | Severity | Rule | C# counterpart |
+|---|---|---|---|
+| TYPMOD002 | Error | A value object needs a `Parse` with the required signature | None |
+| TYPMOD003 | Error | A closed class is declared `abstract` | `closed` is implicitly abstract |
+| TYPMOD004 | Error | A direct subtype of a closed class is in the same assembly | CS9382 |
+| TYPMOD005 | Error | A direct subtype of a closed class uses every type parameter in its base type | CS9383 |
+| TYPMOD006 | Error | No arm follows arms that already exhaust a closed type | CS8510 |
+| TYPMOD007 | Error | A union declaration is a partial struct | Union declarations are structs |
+| TYPMOD008 | Error | A union declaration has no instance field, auto-property, or field-like event | CS9373 |
+| TYPMOD009 | Error | A union declaration has no public non-partial constructor with one parameter | CS9374 |
+| TYPMOD010 | Error | A constructor of a union declaration calls another constructor with `this(...)` | CS9375 |
+| TYPMOD011 | Error | A union declaration does not use a union member provider | CS9387 |
+| TYPMOD012 | Error | A union type has a union creation member | CS9385 |
+| TYPMOD013 | Error | A union type has a public `object` property named `Value` | CS9386 |
+| TYPMOD014 | Error | The types that contain a union declaration are partial | None |
+| TYPMOD015 | Error | A `Result` is not built by `default` or a parameterless construction | None |
+| TYPMOD016 | Error | The `Value` of a `Result` is not cast to a case type | None |
+| TYPMOD017 | Warning | A `[MustUse]` value is not discarded by an expression statement | Rust `#[must_use]` |
+| TYPMOD018 | Error | A closed enum has a member for 0 | Closed enums |
+| TYPMOD019 | Error | A conversion to a closed enum comes from a constant of a member | Closed enums |
+| TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
+
+The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.
 
 ## Consumer checks
 
-Consumer test projects reference `TypeModeling.Testing` and run the setup obligations from declarations alone.
+A consumer test project references `TypeModeling.Testing` and runs the setup checks from declarations.
 
 ### Closure check of closed hierarchies
 
@@ -153,7 +199,7 @@ using TypeModeling.Testing.Closure;
 
 var excluded = new Dictionary<string, string>
 {
-    ["tools/CodeGen/CodeGen.csproj"] = "a build-time-only generation tool, outside the shipped closure",
+    ["tools/CodeGen/CodeGen.csproj"] = "A generation tool that runs only at build time and stays outside the shipped closure",
 };
 var closure = await SolutionClosureLoader.LoadAsync(
     new SolutionClosureScan(repoRoot, "App.slnx", "Debug", excluded),
@@ -162,6 +208,8 @@ await Assert.That(SolutionClosureConformance.InventoryViolations(
     closure, SolutionClosureConformance.RepoProjectPaths(repoRoot), excluded)).IsEmpty();
 await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure)).IsEmpty();
 ```
+
+The closed hierarchy check reports a direct subtype of a closed class declared outside the assembly of the closed class, and a subtype of a `[JsonPolymorphic]` type that is missing from its `[JsonDerivedType]` registrations.
 
 ### Analyzer attach check
 
@@ -172,7 +220,7 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
     repoRoot,
     new AnalyzerAttachmentRequirement(
         AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD002" },
+        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD101", "TYPMOD102", "TYPMOD103" },
         ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
         ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
         ProtectedDiagnosticCategories: new HashSet<string>()),
@@ -181,41 +229,19 @@ var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
 await Assert.That(violations).IsEmpty();
 ```
 
-Several checks can be bundled into `AnalyzerAttachmentCheck` and judged in one scan.
-Project evaluation and compilation do not depend on the detector, so scanning once per check compiles the same project once per check.
-Passing `cacheDirectory` reuses a detector's verdict while the project's sources, references and build definitions are unchanged, and recompiles only the projects that changed.
-
-```csharp
-var results = await AnalyzerAttachmentConformance.ViolationsAsync(
-    repoRoot,
-    [
-        new AnalyzerAttachmentCheck(typeModelingRequirement, new ClosedTypeUsageDetector()),
-        new AnalyzerAttachmentCheck(otherRequirement, otherDetector),
-    ],
-    cacheDirectory: ".cache/attach-verdicts",
-    CancellationToken.None);
-```
+`ClosedTypeUsageDetector` counts every project that uses a closed type or a union type.
 
 ## Dependencies
 
-The runtime `src/TypeModeling/` depends on no other library; effectsystem-dotnet references it. Only the check executor `src/TypeModeling.Testing/` depends on Roslyn's Microsoft.CodeAnalysis.CSharp, for MSBuild evaluation and probe compilation.
-
-## Development
-
-This repository applies its shipped checks to itself ([SelfAuditTests](./tests/TypeModeling.Testing.Tests/root/SelfAuditTests.cs)). Verification runs through three devenv entries, split by time budget:
-
-- `devenv shell verify` (within 2 minutes, before every commit) builds the solution with every analyzer warning as an error, including cognitive complexity (SonarAnalyzer S3776, threshold 15), and runs the in-process tests of the runtime and the analyzers.
-- `devenv shell verify-push` (within 15 minutes, before every push) runs `verify`, the self-audit tests, and mutation testing of the runtime and the analyzers on the lines changed since the push base. One surviving or uncovered mutant on a changed line fails it.
-- `devenv shell verify-full` (no budget, not a gate, before every release) runs `verify`, all TypeModeling.Testing tests, which evaluate MSBuild projects on the file system, and mutation testing over all three source projects. Undetected mutants that the previous full run did not report are appended to the backlog.
-
-Mutation testing uses [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet), built from the commit of its v0.4.1 release tag pinned in `devenv.yaml`. For `verify-push`, its `--changed-lines` option generates only the mutants on changed lines, and its `changed-lines` command selects the undetected ones. Branch, commit, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md), and released changes in [CHANGELOG.md](./CHANGELOG.md).
+The runtime `src/TypeModeling/` depends on no other library.
+`src/TypeModeling.Testing/` depends on Microsoft.CodeAnalysis.CSharp 5.9.0 to evaluate MSBuild projects and compile them with C# 14 syntax and generated sources.
 
 ## Architecture standard
 
 The architecture standard is at `/home/nixos/environment/architecture-standard`.
 Conformance is always judged against the current text of the standard.
-Application follows the four rules of application and the usage procedures in the standard's README.
-Decision records are kept in `docs/decisions/`, outside version control.
+Application follows the four rules of application and the usage procedure in the standard's README.
+The current contracts and reader-facing documents start at this README.
 
 ## License
 
