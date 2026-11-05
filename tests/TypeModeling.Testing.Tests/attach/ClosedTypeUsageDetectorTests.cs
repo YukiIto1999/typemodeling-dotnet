@@ -6,9 +6,9 @@ namespace TypeModeling.Testing.Tests.Attach;
 /// <summary>closed type の semantic 利用検出</summary>
 public sealed class ClosedTypeUsageDetectorTests
 {
-    /// <summary>ClosedUnion 基底型と variant の利用検出</summary>
+    /// <summary>閉じた基底型と派生型の利用検出</summary>
     [Test]
-    public async Task Closed_union_base_and_variant_count_as_closed_type_uses()
+    public async Task Closed_base_and_subtype_count_as_closed_type_uses()
     {
         var baseCompilation = ClosedTypeCompilationFixture.Create("""
             using Probe.Types;

@@ -10,7 +10,7 @@ In plain C#, exhaustive matching over a discriminated union collapses through th
 
 ## What it provides
 
-- `[ClosedUnion]` writes discriminated unions with external derivation sealed off, and `[ValueObject<TUnderlying>]` writes value objects that only allow validated construction — both close to a language feature.
+- `[Closed]` writes closed hierarchies with the rules of the C# 15 `closed` modifier, and `[ValueObject<TUnderlying>]` writes value objects that only allow validated construction — both close to a language feature.
 - `Result<TValue, TFailure>`, `Unit`, and `Never` express success and failure of pure computation in types.
 - The compile-time engine (TYPMOD002 and the exhaustiveness suppressor) enforces the discrimination and construction discipline at build time.
 - [TypeModeling.Testing](./src/TypeModeling.Testing/) executes closure and attach obligations from declarations alone.
@@ -31,12 +31,12 @@ Every project that declares or discriminates closed types attaches the analyzer.
 
 ## Usage
 
-### ClosedUnion
+### Closed
 
 ```csharp
 using TypeModeling.Domain;
 
-[ClosedUnion]
+[Closed]
 public abstract record PaymentState
 {
     private PaymentState() { }
@@ -45,7 +45,9 @@ public abstract record PaymentState
 }
 ```
 
-Discriminate closed variants with a switch expression.
+`[Closed]` corresponds to the C# 15 `closed` modifier.
+Direct subtypes may be declared anywhere in the same assembly, and a switch expression that handles every direct subtype is exhaustive whatever the shape of its patterns.
+To migrate to C# 15, replace the attribute with the `closed` modifier and remove `abstract`.
 
 ### ValueObject
 

@@ -41,8 +41,8 @@ public sealed class AnalyzerAttachmentNoWarnTests
     [Test]
     [Arguments("TYPMOD002")]
     [Arguments("TYPMOD*")]
-    [Arguments("TCSSUP001")]
-    [Arguments("TCSSUP*")]
+    [Arguments("FIXSUP001")]
+    [Arguments("FIXSUP*")]
     public async Task Analyzer_diagnostic_in_no_warn_is_rejected(string diagnosticId)
     {
         using var fixture = new TemporaryAnalyzerAttachmentFixture();

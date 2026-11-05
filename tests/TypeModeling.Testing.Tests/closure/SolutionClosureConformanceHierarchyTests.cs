@@ -61,104 +61,31 @@ public sealed class SolutionClosureConformanceHierarchyTests
         await Assert.That(violations).IsEmpty();
     }
 
-    /// <summary>規定形状から外れた ClosedUnion 派生型の違反報告</summary>
+    /// <summary>同じ assembly の直接の派生は形を問わない規約成立</summary>
     [Test]
-    public async Task Closed_union_subtypes_outside_the_required_shape_are_reported()
+    public async Task Same_assembly_subtypes_of_a_closed_class_have_no_violations_whatever_their_shape()
     {
-        const string assemblyName = "ClosedUnionViolationFixture";
+        const string assemblyName = "ClosedSameAssemblyFixture";
         var assembly = DynamicFixtureCompiler.Compile(
             """
             using TypeModeling.Domain;
 
             namespace DynamicFixtures;
 
-            [ClosedUnion]
-            public abstract record BadRecordUnion
+            [Closed]
+            public abstract record GateState
             {
-                protected BadRecordUnion() { }
-
-                public record Open : BadRecordUnion;
+                public sealed record Nested : GateState;
             }
 
-            public sealed record External : BadRecordUnion;
+            public record TopLevel : GateState;
 
-            [ClosedUnion]
-            public abstract class BadClassUnion
-            {
-                protected BadClassUnion() { }
+            public sealed record Deeper : TopLevel;
 
-                public sealed class Nested : BadClassUnion;
-            }
-            """,
-            assemblyName);
-        var projectPath = $"fixtures/{assemblyName}.csproj";
+            [Closed]
+            public abstract class Generic<TValue>;
 
-        var violations = SolutionClosureConformance.ClosedHierarchyViolations(Closure(assembly));
-
-        await Assert.That(violations).IsEquivalentTo([
-            $"base DynamicFixtures.BadClassUnion (assembly {assemblyName}, source project {projectPath}) " +
-            $"<- subtype DynamicFixtures.BadClassUnion+Nested (assembly {assemblyName}, source project {projectPath}) " +
-            "(directly-nested=True, sealed=True, record=False)",
-            $"base DynamicFixtures.BadRecordUnion (assembly {assemblyName}, source project {projectPath}) " +
-            $"<- subtype DynamicFixtures.BadRecordUnion+Open (assembly {assemblyName}, source project {projectPath}) " +
-            "(directly-nested=True, sealed=False, record=True)",
-            $"base DynamicFixtures.BadRecordUnion (assembly {assemblyName}, source project {projectPath}) " +
-            $"<- subtype DynamicFixtures.External (assembly {assemblyName}, source project {projectPath}) " +
-            "(directly-nested=False, sealed=True, record=True)",
-        ]);
-    }
-
-    /// <summary>generic な ClosedUnion 派生型への規約適用</summary>
-    [Test]
-    public async Task Generic_closed_union_subtypes_are_checked_against_the_shape()
-    {
-        const string assemblyName = "GenericClosedUnionFixture";
-        var assembly = DynamicFixtureCompiler.Compile(
-            """
-            using TypeModeling.Domain;
-
-            namespace DynamicFixtures;
-
-            [ClosedUnion]
-            public abstract record GenericUnion<TValue>
-            {
-                protected GenericUnion() { }
-
-                public sealed record Inside : GenericUnion<TValue>;
-            }
-
-            public sealed record Outside<TValue> : GenericUnion<TValue>;
-            """,
-            assemblyName);
-        var projectPath = $"fixtures/{assemblyName}.csproj";
-
-        var violations = SolutionClosureConformance.ClosedHierarchyViolations(Closure(assembly));
-
-        await Assert.That(violations).IsEquivalentTo([
-            $"base DynamicFixtures.GenericUnion`1 (assembly {assemblyName}, source project {projectPath}) " +
-            $"<- subtype DynamicFixtures.Outside`1 (assembly {assemblyName}, source project {projectPath}) " +
-            "(directly-nested=False, sealed=True, record=True)",
-        ]);
-    }
-
-    /// <summary>基底へ直接ネストした sealed record 派生型の規約成立</summary>
-    [Test]
-    public async Task Directly_nested_sealed_record_union_subtypes_have_no_violations()
-    {
-        const string assemblyName = "ClosedUnionConformingFixture";
-        var assembly = DynamicFixtureCompiler.Compile(
-            """
-            using TypeModeling.Domain;
-
-            namespace DynamicFixtures;
-
-            [ClosedUnion]
-            public abstract record GoodUnion
-            {
-                private GoodUnion() { }
-
-                internal sealed record Variant : GoodUnion;
-            }
+            public sealed class Inside<TValue> : Generic<TValue>;
             """,
             assemblyName);
 
@@ -167,16 +94,65 @@ public sealed class SolutionClosureConformanceHierarchyTests
         await Assert.That(violations).IsEmpty();
     }
 
-    private static LoadedSolutionClosure Closure(Assembly assembly)
+    /// <summary>別の assembly の直接の派生の違反報告</summary>
+    [Test]
+    public async Task A_direct_subtype_in_another_assembly_is_reported()
     {
-        var assemblyName = assembly.GetName().Name
-            ?? throw new InvalidOperationException("fixture assembly has no name");
-        var project = new LoadedSolutionProject(
-            $"fixtures/{assemblyName}.csproj",
-            assemblyName,
-            assembly.Location,
-            assembly.ManifestModule.ModuleVersionId,
-            assembly);
-        return new LoadedSolutionClosure([], [project], assembly.GetTypes());
+        const string baseName = "ClosedBaseFixture";
+        const string subtypeName = "ClosedForeignSubtypeFixture";
+        var baseAssembly = DynamicFixtureCompiler.Compile(
+            """
+            using TypeModeling.Domain;
+
+            namespace DynamicFixtures;
+
+            [Closed]
+            public abstract record Shared;
+
+            [Closed]
+            public abstract record Generic<TValue>;
+
+            public record Open : Shared;
+            """,
+            baseName);
+        var subtypeAssembly = DynamicFixtureCompiler.Compile(
+            """
+            namespace DynamicFixtures.Foreign;
+
+            public sealed record Direct : DynamicFixtures.Shared;
+
+            public sealed record GenericDirect<TValue> : DynamicFixtures.Generic<TValue>;
+
+            public sealed record Indirect : DynamicFixtures.Open;
+            """,
+            subtypeName,
+            baseAssembly);
+
+        var violations = SolutionClosureConformance.ClosedHierarchyViolations(Closure(baseAssembly, subtypeAssembly));
+
+        await Assert.That(violations).IsEquivalentTo([
+            $"base DynamicFixtures.Generic`1 (assembly {baseName}, source project fixtures/{baseName}.csproj) " +
+            $"<- subtype DynamicFixtures.Foreign.GenericDirect`1 (assembly {subtypeName}, source project fixtures/{subtypeName}.csproj) " +
+            "(direct subtype outside the assembly of the closed type)",
+            $"base DynamicFixtures.Shared (assembly {baseName}, source project fixtures/{baseName}.csproj) " +
+            $"<- subtype DynamicFixtures.Foreign.Direct (assembly {subtypeName}, source project fixtures/{subtypeName}.csproj) " +
+            "(direct subtype outside the assembly of the closed type)",
+        ]);
+    }
+
+    private static LoadedSolutionClosure Closure(params Assembly[] assemblies)
+    {
+        var projects = assemblies.Select(assembly =>
+        {
+            var assemblyName = assembly.GetName().Name
+                ?? throw new InvalidOperationException("fixture assembly has no name");
+            return new LoadedSolutionProject(
+                $"fixtures/{assemblyName}.csproj",
+                assemblyName,
+                assembly.Location,
+                assembly.ManifestModule.ModuleVersionId,
+                assembly);
+        });
+        return new LoadedSolutionClosure([], [.. projects], [.. assemblies.SelectMany(assembly => assembly.GetTypes())]);
     }
 }

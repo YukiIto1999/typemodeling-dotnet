@@ -14,8 +14,8 @@ public sealed class AnalyzerAttachmentPragmaTests
     [Test]
     [Arguments("TYPMOD002")]
     [Arguments("TYPMOD*")]
-    [Arguments("TCSSUP001")]
-    [Arguments("TCSSUP*")]
+    [Arguments("FIXSUP001")]
+    [Arguments("FIXSUP*")]
     public async Task Unrestored_analyzer_pragma_is_rejected(string diagnosticId)
     {
         using var fixture = new TemporaryAnalyzerAttachmentFixture();
@@ -40,7 +40,7 @@ public sealed class AnalyzerAttachmentPragmaTests
             TemporaryAnalyzerAttachmentFixture.ClosedTypeDeclarations + Environment.NewLine + """
             // #pragma warning disable TYPMOD002
             #if false
-            #pragma warning disable TCSSUP001
+            #pragma warning disable FIXSUP001
             #endif
             #pragma warning disable TYPMOD002
             internal sealed class ScopedPragmaProbe;
@@ -51,7 +51,7 @@ public sealed class AnalyzerAttachmentPragmaTests
 
             # dotnet_diagnostic.TYPMOD*.severity = none
             [DoesNotMatch.cs]
-            dotnet_diagnostic.TCSSUP*.severity = none
+            dotnet_diagnostic.FIXSUP*.severity = none
             """);
 
         var violations = await ViolationsAsync(fixture, CancellationToken.None);

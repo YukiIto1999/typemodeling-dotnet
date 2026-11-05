@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- TYPMOD003 rejects a closed class that is not abstract. C# 15 makes a `closed` class implicitly abstract, and C# 14 expresses it by declaring `abstract`.
+- TYPMOD004 rejects a direct subtype of a closed class declared in another assembly, as C# 15 does with CS9382.
+- TYPMOD005 rejects a type parameter of a direct subtype that the closed base type does not reference, as C# 15 does with CS9383.
+- TYPMOD006 rejects a switch expression arm that every earlier arm already covers through a closed type, as C# 15 does with CS8510.
+
+### Changed
+
+- `[ClosedUnion]` is replaced by `[Closed]`, which follows the C# 15 `closed` modifier. Direct subtypes may be declared anywhere in the same assembly, nested or not and sealed or not, and closed classes declared with `[Closed]` in other assemblies are recognized. A class compiled with the C# 15 `closed` modifier is not recognized, because a Roslyn that understands `closed` hides its `IsClosedTypeAttribute` from analyzers. A closed class from another assembly counts as exhausted only when every direct subtype is visible: a generator records the number of direct subtypes of each public closed class as `ClosedSubtypeCountAttribute`, as C# 15 records them in `IsClosedTypeAttribute.DerivedTypes`, so an internal subtype hidden from metadata keeps a switch non-exhaustive.
+- The exhaustiveness suppressor lets the compiler itself decide exhaustiveness after covering the values a closed type cannot have, so positional, property, tuple, nested and guarded patterns, generic instantiations, and type parameters constrained to a closed class behave as in C# 15. A switch is not treated as exhaustive when an arm added for the check does not compile, because the compiler may then skip the exhaustiveness check. Its suppressions are renamed to TYPMOD101 for CS8509, TYPMOD102 for CS8524, and TYPMOD103 for CS8846.
+- The closed hierarchy check of TypeModeling.Testing reports a direct subtype of a closed class declared outside its assembly, instead of a subtype that is not a nested sealed record.
+
 ### Removed
 
 - TYPMOD001, which rejected switch statements over closed types, is removed. C# 15 does not restrict switch statements over closed hierarchies, so the analyzer rejected code that the language accepts.

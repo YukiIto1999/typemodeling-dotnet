@@ -17,7 +17,7 @@ public sealed partial record SampleQuantity
 }
 
 /// <summary>テスト専用の数量の検証に失敗した理由を表す閉じた階層</summary>
-[ClosedUnion]
+[Closed]
 public abstract record SampleQuantityFailure
 {
     /// <summary>正でないこと以外の失敗理由の追加を閉じる基底の構築</summary>

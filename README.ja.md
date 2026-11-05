@@ -10,7 +10,7 @@ TypeModeling は、不正な状態を型で表現できなくする C# の型モ
 
 ## 提供するもの
 
-- `[ClosedUnion]` が外部派生を封じた判別共用体を、`[ValueObject<TUnderlying>]` が検証を経た構築だけを許す値オブジェクトを、言語機能のように書かせる
+- `[Closed]` が C# 15 の `closed` 修飾子と同じ規則の閉じた階層を、`[ValueObject<TUnderlying>]` が検証を経た構築だけを許す値オブジェクトを、言語機能のように書かせる
 - `Result<TValue, TFailure>` と `Unit` と `Never` が純粋な計算の成功と失敗を型に現す
 - compile-time engine(TYPMOD002 と網羅の suppressor)が、判別と生成の規律を build で強制する
 - [TypeModeling.Testing](./src/TypeModeling.Testing/) が、閉包と attach の設営義務を宣言だけで実行する
@@ -31,12 +31,12 @@ TypeModeling は、不正な状態を型で表現できなくする C# の型モ
 
 ## 使い方
 
-### ClosedUnion
+### Closed
 
 ```csharp
 using TypeModeling.Domain;
 
-[ClosedUnion]
+[Closed]
 public abstract record PaymentState
 {
     private PaymentState() { }
@@ -45,7 +45,9 @@ public abstract record PaymentState
 }
 ```
 
-閉じた variant の判別は switch 式で書く。
+`[Closed]` は C# 15 の `closed` 修飾子に対応する。
+直接の派生は同じ assembly のどこに宣言してもよく、全ての直接の派生を扱う switch 式は pattern の形を問わず網羅になる。
+C# 15 へ移るときは、属性を `closed` 修飾子に替えて `abstract` を外す。
 
 ### ValueObject
 

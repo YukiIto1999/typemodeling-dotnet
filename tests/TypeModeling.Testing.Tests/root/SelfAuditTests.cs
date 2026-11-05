@@ -20,8 +20,9 @@ public sealed class SelfAuditTests
                 "src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
                 new HashSet<string>(StringComparer.Ordinal)
                 {
-                    "TCSSUP001",
-                    "TCSSUP002",
+                    "TYPMOD101",
+                    "TYPMOD102",
+                    "TYPMOD103",
                 },
                 new HashSet<string>(StringComparer.Ordinal) { "TYPMOD" },
                 new HashSet<string>(StringComparer.Ordinal)

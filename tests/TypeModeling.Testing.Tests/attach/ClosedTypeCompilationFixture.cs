@@ -7,17 +7,17 @@ namespace TypeModeling.Testing.Tests.Attach;
 /// <summary>closed type detector 用の semantic compilation fixture</summary>
 internal static class ClosedTypeCompilationFixture
 {
-    /// <summary>正しい ClosedUnion metadata identity と polymorphic hierarchy の宣言</summary>
+    /// <summary>正しい Closed metadata identity と JSON polymorphic hierarchy の宣言</summary>
     private const string ClosedTypeFixtureSource = """
         namespace TypeModeling.Domain
         {
             [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Interface)]
-            public sealed class ClosedUnionAttribute : System.Attribute;
+            public sealed class ClosedAttribute : System.Attribute;
         }
 
         namespace Probe.Unrelated
         {
-            public sealed class ClosedUnionAttribute : System.Attribute;
+            public sealed class ClosedAttribute : System.Attribute;
         }
 
         namespace Probe.Types
@@ -25,7 +25,7 @@ internal static class ClosedTypeCompilationFixture
             using System.Text.Json.Serialization;
             using TypeModeling.Domain;
 
-            [ClosedUnion]
+            [Closed]
             public abstract record ClosedBase;
 
             public sealed record ClosedVariant : ClosedBase;
@@ -41,7 +41,7 @@ internal static class ClosedTypeCompilationFixture
 
             public sealed record OpenJsonVariant : OpenJsonBase;
 
-            [Probe.Unrelated.ClosedUnion]
+            [Probe.Unrelated.Closed]
             public abstract record SameNamedClosedBase;
         }
         """;

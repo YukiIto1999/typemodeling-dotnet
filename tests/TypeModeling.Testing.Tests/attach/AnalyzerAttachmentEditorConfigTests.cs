@@ -25,7 +25,7 @@ public sealed class AnalyzerAttachmentEditorConfigTests
             dotnet_diagnostic.TYPMOD002.severity = {{severity}}
 
             [DoesNotMatch.cs]
-            dotnet_diagnostic.TCSSUP001.severity = none
+            dotnet_diagnostic.FIXSUP001.severity = none
             """);
 
         AssertPolicyViolationContainingAll(
@@ -38,7 +38,7 @@ public sealed class AnalyzerAttachmentEditorConfigTests
     /// <param name="diagnosticPattern">検査対象の診断 prefix wildcard</param>
     [Test]
     [Arguments("TYPMOD*")]
-    [Arguments("TCSSUP*")]
+    [Arguments("FIXSUP*")]
     public async Task Applicable_editorconfig_wildcard_suppression_is_rejected(string diagnosticPattern)
     {
         using var fixture = new TemporaryAnalyzerAttachmentFixture();

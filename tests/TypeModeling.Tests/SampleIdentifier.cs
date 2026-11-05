@@ -17,7 +17,7 @@ public sealed partial record SampleIdentifier
 }
 
 /// <summary>テスト専用の識別子の検証に失敗した理由を表す閉じた階層</summary>
-[ClosedUnion]
+[Closed]
 public abstract record SampleIdentifierFailure
 {
     /// <summary>空以外の失敗理由の追加を閉じる基底の構築</summary>

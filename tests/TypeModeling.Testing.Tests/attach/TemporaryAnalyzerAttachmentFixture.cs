@@ -17,14 +17,14 @@ internal sealed class TemporaryAnalyzerAttachmentFixture : IDisposable
         namespace TypeModeling.Domain
         {
             [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Interface)]
-            public sealed class ClosedUnionAttribute : System.Attribute;
+            public sealed class ClosedAttribute : System.Attribute;
         }
 
         namespace Fixture.Consumer
         {
             using TypeModeling.Domain;
 
-            [ClosedUnion]
+            [Closed]
             public abstract record ClosedBase
             {
                 private ClosedBase() { }
@@ -79,7 +79,7 @@ internal sealed class TemporaryAnalyzerAttachmentFixture : IDisposable
         WriteConsumerSource(ClosedTypeDeclarations);
         Requirement = new AnalyzerAttachmentRequirement(
             "analyzers/Fixture.Analyzers.csproj",
-            new HashSet<string>(StringComparer.Ordinal) { "TCSSUP001", "TCSSUP002" },
+            new HashSet<string>(StringComparer.Ordinal) { "FIXSUP001", "FIXSUP002" },
             new HashSet<string>(StringComparer.Ordinal) { "TYPMOD" },
             new HashSet<string>(StringComparer.Ordinal) { "consumer/Consumer.csproj" },
             new HashSet<string>(StringComparer.Ordinal) { "TypeModeling" });

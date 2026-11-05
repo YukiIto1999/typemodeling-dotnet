@@ -17,7 +17,7 @@ public sealed partial record SampleName
 }
 
 /// <summary>テスト専用の名前の検証に失敗した理由を表す閉じた階層</summary>
-[ClosedUnion]
+[Closed]
 public abstract record SampleNameFailure
 {
     /// <summary>空白だけであること以外の失敗理由の追加を閉じる基底の構築</summary>

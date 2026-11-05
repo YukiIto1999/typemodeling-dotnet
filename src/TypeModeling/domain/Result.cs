@@ -3,7 +3,7 @@ namespace TypeModeling.Domain;
 /// <summary>純粋な計算の成功と想定内の失敗を型に現す閉じた階層</summary>
 /// <typeparam name="TValue">成功したときに返す値の型</typeparam>
 /// <typeparam name="TFailure">想定内の失敗を表す型</typeparam>
-[ClosedUnion]
+[Closed]
 public abstract record Result<TValue, TFailure>
 {
     /// <summary>成功と失敗以外の派生を防ぐ基底の構築</summary>
