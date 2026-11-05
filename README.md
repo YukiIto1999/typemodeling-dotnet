@@ -49,6 +49,32 @@ public abstract record PaymentState
 Direct subtypes may be declared anywhere in the same assembly, and a switch expression that handles every direct subtype is exhaustive whatever the shape of its patterns.
 To migrate to C# 15, replace the attribute with the `closed` modifier and remove `abstract`.
 
+### Union
+
+```csharp
+using System.Runtime.CompilerServices;
+
+[Union]
+public readonly partial struct Pet
+{
+    public partial Pet(Cat value);
+    public partial Pet(Dog value);
+}
+
+Pet pet = new Cat("Tama");
+string name = pet.Value switch
+{
+    Cat cat => cat.Name,
+    Dog dog => dog.Name,
+};
+```
+
+The declaration corresponds to the C# 15 union declaration `public union Pet(Cat, Dog);`.
+The generator adds the same members as the C# 15 lowering, namely the constructor bodies, the `Value` property, and `IUnion`, and before C# 15 it also adds the implicit conversions from each case type.
+Before .NET 11, it adds `UnionAttribute` and `IUnion` to each assembly as embedded types.
+A switch on `Value` that handles every case type is exhaustive.
+C# 15 treats the generated type as a language union, so a switch can also match the union itself, as in `pet switch { Cat cat => ... }`.
+
 ### ValueObject
 
 ```csharp

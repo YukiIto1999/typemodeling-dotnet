@@ -49,6 +49,32 @@ public abstract record PaymentState
 直接の派生は同じ assembly のどこに宣言してもよく、全ての直接の派生を扱う switch 式は pattern の形を問わず網羅になる。
 C# 15 へ移るときは、属性を `closed` 修飾子に替えて `abstract` を外す。
 
+### Union
+
+```csharp
+using System.Runtime.CompilerServices;
+
+[Union]
+public readonly partial struct Pet
+{
+    public partial Pet(Cat value);
+    public partial Pet(Dog value);
+}
+
+Pet pet = new Cat("Tama");
+string name = pet.Value switch
+{
+    Cat cat => cat.Name,
+    Dog dog => dog.Name,
+};
+```
+
+この宣言は、C# 15 の union 宣言 `public union Pet(Cat, Dog);` に対応する。
+generator は、コンストラクタの本体、`Value` property、`IUnion` という C# 15 の lowering と同じ member を足し、C# 15 より前では case 型からの暗黙の変換も足す。
+.NET 11 より前では、`UnionAttribute` と `IUnion` を埋め込みの型として assembly ごとに足す。
+全ての case 型を扱う `Value` への switch は網羅になる。
+C# 15 は生成した型を言語の union として扱うので、`pet switch { Cat cat => ... }` のように union そのものも照合できる。
+
 ### ValueObject
 
 ```csharp

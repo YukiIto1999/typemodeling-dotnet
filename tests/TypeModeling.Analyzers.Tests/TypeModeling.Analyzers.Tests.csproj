@@ -15,7 +15,8 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <!-- analyzer は利用側の SDK の compiler で動くよう 4.14 に置き、テストは C# 14 の partial コンストラクタを parse できる版で検証する -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="5.9.0" />
   </ItemGroup>
 
 </Project>

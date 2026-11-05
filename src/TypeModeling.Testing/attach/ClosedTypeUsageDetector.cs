@@ -9,6 +9,10 @@ public sealed class ClosedTypeUsageDetector : IGuardedFeatureDetector
     private const string ClosedAttributeMetadataName =
         "TypeModeling.Domain.ClosedAttribute";
 
+    /// <summary>C# 15 の union 型の属性の metadata 名</summary>
+    private const string UnionAttributeMetadataName =
+        "System.Runtime.CompilerServices.UnionAttribute";
+
     /// <summary>closed type 利用の semantic 走査</summary>
     private static readonly GuardedTypeUsageWalk UsageWalk = new(
         leafPredicate: IsClosedTypeOrVariant,
@@ -43,5 +47,5 @@ public sealed class ClosedTypeUsageDetector : IGuardedFeatureDetector
     /// <returns>閉じた集合を宣言する場合に true</returns>
     private static bool DefinesClosedSet(INamedTypeSymbol type) =>
         type.GetAttributes().Any(attribute =>
-            attribute.AttributeClass?.ToDisplayString() == ClosedAttributeMetadataName);
+            attribute.AttributeClass?.ToDisplayString() is ClosedAttributeMetadataName or UnionAttributeMetadataName);
 }

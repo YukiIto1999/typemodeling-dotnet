@@ -20,8 +20,26 @@ internal static class FillerPatterns
         TypeText typeText,
         Compilation compilation) =>
         [.. positions
-            .SelectMany(position => Leaves(position.Type, typeText, compilation).Select(position.Path.Wrap))
+            .SelectMany(position => (position.Union is { } union
+                    ? UnionValueLeaves(union, typeText, compilation)
+                    : Leaves(position.Type, typeText, compilation))
+                .Select(position.Path.Wrap))
             .Distinct()];
+
+    /// <summary>union 型の Value の位置に当てる、case 型でない値を覆う pattern</summary>
+    /// <param name="union">union 型</param>
+    /// <param name="typeText">型名を解決する switch の位置の文脈</param>
+    /// <param name="compilation">派生を探す compilation</param>
+    /// <returns>Value に当てる pattern の文字列</returns>
+    /// <remarks>C# 15 の「Union exhaustiveness」と同じく、union 型は case 型で尽くされるとみなす</remarks>
+    private static IEnumerable<string> UnionValueLeaves(INamedTypeSymbol union, TypeText typeText, Compilation compilation)
+    {
+        var caseTypes = UnionTypeSet.CaseTypes(union);
+        var names = caseTypes.Select(typeText.Render);
+        return caseTypes
+            .SelectMany(caseType => Leaves(caseType, typeText, compilation))
+            .Prepend($"not ({string.Join(" or ", names)})");
+    }
 
     /// <summary>部分値の位置に当てる、存在しない値の領域を覆う pattern</summary>
     /// <param name="type">その位置で pattern が受け取る型</param>

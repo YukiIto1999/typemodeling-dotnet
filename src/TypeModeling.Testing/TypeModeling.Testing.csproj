@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <!-- 利用側の project を C# 14 以降の構文と生成 source のまま compile するため、analyzer の 4.14 でなく新しい版を使う -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="5.9.0" />
   </ItemGroup>
 
 </Project>

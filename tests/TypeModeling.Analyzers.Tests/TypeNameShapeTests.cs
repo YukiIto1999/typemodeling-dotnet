@@ -1,5 +1,8 @@
+using TUnit.Assertions;
+using TUnit.Assertions.Extensions;
 using TUnit.Core;
 using static TypeModeling.Analyzers.Tests.ExhaustivenessAssertions;
+using static TypeModeling.Analyzers.Tests.UnionFixture;
 
 namespace TypeModeling.Analyzers.Tests;
 
@@ -68,4 +71,32 @@ public sealed class TypeNameShapeTests
             };
         }
         """);
+
+    /// <summary>System を using しない位置での、組み込み型を case 型に持つ union の網羅</summary>
+    [Test]
+    public async Task Unions_of_built_in_types_are_exhaustive_without_using_system()
+    {
+        var diagnostics = await Run("""
+            namespace Probe;
+
+            [System.Runtime.CompilerServices.Union]
+            public readonly partial struct Scalar
+            {
+                public partial Scalar(int value);
+                public partial Scalar(string value);
+            }
+
+            internal static class Use
+            {
+                internal static int Describe(Scalar scalar) => scalar.Value switch
+                {
+                    int number => number,
+                    string text => text.Length,
+                };
+            }
+            """);
+
+        await Assert.That(Errors(diagnostics)).IsEmpty();
+        await Assert.That(diagnostics.Where(diagnostic => diagnostic.Id == "CS8509" && !diagnostic.IsSuppressed)).IsEmpty();
+    }
 }

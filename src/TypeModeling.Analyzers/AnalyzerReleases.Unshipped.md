@@ -11,6 +11,14 @@ TYPMOD003 | TypeModeling | Error | abstract でない閉じた class の禁止
 TYPMOD004 | TypeModeling | Error | 別の assembly の閉じた class からの直接の派生の禁止(C# 15 の CS9382 に対応)
 TYPMOD005 | TypeModeling | Error | 閉じた基底型で参照しない型引数の禁止(C# 15 の CS9383 に対応)
 TYPMOD006 | TypeModeling | Error | 閉じた型の網羅で到達できない arm の禁止(C# 15 の CS8510 に対応)
+TYPMOD007 | TypeModeling | Error | struct でない union 宣言の形の禁止
+TYPMOD008 | TypeModeling | Error | union 宣言の形の instance field、自動実装 property、field 形式の event の禁止(C# 15 の CS9373 に対応)
+TYPMOD009 | TypeModeling | Error | union 宣言の形の partial でない引数一つの公開コンストラクタの禁止(C# 15 の CS9374 に対応)
+TYPMOD010 | TypeModeling | Error | union 宣言の形の this 初期化子のないコンストラクタの禁止(C# 15 の CS9375 に対応)
+TYPMOD011 | TypeModeling | Error | union 宣言の形の union member provider の禁止(C# 15 の CS9387 に対応)
+TYPMOD012 | TypeModeling | Error | union 構築子のない union 型の禁止(C# 15 の CS9385 に対応)
+TYPMOD013 | TypeModeling | Error | Value のない union 型の禁止(C# 15 の CS9386 に対応)
+TYPMOD014 | TypeModeling | Error | partial でない型に入れ子の union 宣言の形の禁止
 
 ### Removed Rules
 

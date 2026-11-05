@@ -33,6 +33,22 @@ public sealed class ClosedTypeUsageDetectorTests
         await Assert.That(detector.UsesGuardedFeature(variantCompilation)).IsTrue();
     }
 
+    /// <summary>union 型の利用検出</summary>
+    [Test]
+    public async Task Union_types_count_as_closed_type_uses()
+    {
+        var compilation = ClosedTypeCompilationFixture.Create("""
+            using Probe.Types;
+
+            internal static class UnionConsumer
+            {
+                internal static Pet Preserve(Pet value) => value;
+            }
+            """);
+
+        await Assert.That(new ClosedTypeUsageDetector().UsesGuardedFeature(compilation)).IsTrue();
+    }
+
     /// <summary>JSON polymorphic 型と同名属性型の除外</summary>
     [Test]
     public async Task Json_polymorphic_and_same_named_attribute_types_do_not_count_as_closed_type_uses()

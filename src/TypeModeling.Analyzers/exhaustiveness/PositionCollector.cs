@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Exhaustiveness;
 
@@ -25,7 +26,15 @@ internal sealed class PositionCollector
     internal static ImmutableArray<PatternPosition> Collect(ISwitchExpressionOperation switchExpression, TypeText typeText)
     {
         var collector = new PositionCollector(typeText);
-        collector.Add(PatternPath.Root, switchExpression.Value.Type);
+        collector.Add(PatternPath.Root, switchExpression.Value.Type, UnionOfValue(switchExpression.Value));
+        if (switchExpression.Value is ITupleOperation tuple)
+        {
+            for (var index = 0; index < tuple.Elements.Length; index++)
+            {
+                var element = tuple.Elements[index];
+                collector.Add(PatternPath.Root.Element(null, index, tuple.Elements.Length), element.Type, UnionOfValue(element));
+            }
+        }
         foreach (var arm in switchExpression.Arms)
             collector.Visit(arm.Pattern, PatternPath.Root);
 
@@ -92,9 +101,24 @@ internal sealed class PositionCollector
     private static PatternPath? MemberPath(IOperation member, PatternPath path, string? narrowing) =>
         member is IMemberReferenceOperation reference ? path.Property(narrowing, reference.Member.Name) : null;
 
+    /// <summary>union 型の Value を参照する operation の union 型</summary>
+    /// <param name="operation">参照を調べる operation</param>
+    /// <returns>union 型か、その union member provider の Value の参照なら、その union 型。それ以外は null</returns>
+    private static INamedTypeSymbol? UnionOfValue(IOperation operation)
+    {
+        if (operation is not IPropertyReferenceOperation { Property: { ContainingType: { } owner } property })
+            return null;
+
+        var union = UnionTypeSet.IsUnion(owner) ? owner : owner.ContainingType;
+        return UnionTypeSet.IsUnion(union) && SymbolEqualityComparer.Default.Equals(UnionTypeSet.ValueProperty(union), property)
+            ? union
+            : null;
+    }
+
     /// <summary>位置の登録</summary>
     /// <param name="path">部分値への経路</param>
     /// <param name="type">その位置で pattern が受け取る型。型のない式なら null</param>
-    private void Add(PatternPath path, ITypeSymbol? type) =>
-        _positions.Add(new PatternPosition(path, type));
+    /// <param name="union">union 型の Value の位置なら、その union 型</param>
+    private void Add(PatternPath path, ITypeSymbol? type, INamedTypeSymbol? union = null) =>
+        _positions.Add(new PatternPosition(path, type, union));
 }
