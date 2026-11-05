@@ -14,7 +14,7 @@ internal static class RepoAuthoredPropertyExpander
     /// <param name="propertyValues">repository authored property 値集合</param>
     /// <returns>property expression の展開結果</returns>
     [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
-        Justification = "S3776 の導入前からある複雑度 16 の既存違反。基線台帳 S3776-008 に記録し、15 以下へ分割した時点で抑止を外す")]
+        Justification = "S3776 の導入前からある複雑度 16 の既存違反。15 以下へ分割した時点で抑止を外す")]
     internal static RepoAuthoredPropertyExpansion Expand(
         string value,
         string projectPath,
