@@ -19,6 +19,9 @@ TYPMOD011 | TypeModeling | Error | union 宣言の形の union member provider �
 TYPMOD012 | TypeModeling | Error | union 構築子のない union 型の禁止(C# 15 の CS9385 に対応)
 TYPMOD013 | TypeModeling | Error | Value のない union 型の禁止(C# 15 の CS9386 に対応)
 TYPMOD014 | TypeModeling | Error | partial でない型に入れ子の union 宣言の形の禁止
+TYPMOD015 | TypeModeling | Error | default と引数なしの構築による未初期化の Result の禁止
+TYPMOD016 | TypeModeling | Error | Result の Value の case 型への cast による取り出しの禁止
+TYPMOD017 | TypeModeling | Warning | MustUse を付けた型と method の値を式文で捨てることの警告
 
 ### Removed Rules
 

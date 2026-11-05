@@ -85,8 +85,8 @@ public sealed partial record OrderId
 {
     private static Result<Guid, OrderIdFailure> Parse(Guid raw) =>
         raw == Guid.Empty
-            ? new Result<Guid, OrderIdFailure>.Failed(new OrderIdFailure.Empty())
-            : new Result<Guid, OrderIdFailure>.Succeeded(raw);
+            ? Result.Failed<OrderIdFailure>(new OrderIdFailure.Empty())
+            : Result.Succeeded(raw);
 }
 ```
 
@@ -101,9 +101,30 @@ Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
 ```csharp
 using TypeModeling.Domain;
 
-Result<int, ParseFailure> parsed = ParsePort(input);
-var doubled = parsed.Map(n => n * 2);
+Result<Order, OrderFailure> Place(Cart cart)
+{
+    if (Price(cart).IsFailed(out var failed, out var price))
+        return failed;
+
+    return price > Limit
+        ? Result.Failed<OrderFailure>(new OrderFailure.OverLimit(price))
+        : Result.Succeeded(new Order(cart, price));
+}
+
+string text = Place(cart).Value switch
+{
+    Succeeded<Order>(var order) => order.ToString(),
+    Failed<OrderFailure>(var failure) => failure.ToString(),
+};
 ```
+
+`Result<TValue, TFailure>` は、`Succeeded<TValue>` と `Failed<TFailure>` を case 型に持つ C# 15 の union 型である。
+`Failed<TFailure>` は失敗の型だけを持つので、`IsFailed` は失敗を成功の型が違う結果へそのまま渡せる。
+`Result.Succeeded` と `Result.Failed` は型引数を推論し、閉じた階層の新しい失敗は `Result.Failed<OrderFailure>(...)` のように基底型を書いて作る。
+`Map`、`Bind`、`MapFailure`、query 式、`Match`、最初の失敗で止める `Sequence`、全ての失敗を `NonEmptyList<TFailure>` に集める `Accumulate` と `Zip` が結果を組み合わせる。
+内部の tag は 0 を未初期化に固定するので、`default` の結果の観測は例外を送出し、TYPMOD015 は `default` の結果を compile 時に拒否する。
+TYPMOD016 は `Value` の case 型への cast を拒否し、TYPMOD017 は Rust の `#[must_use]` と同じく結果を捨てる呼び出しを警告する。
+C# 15 では、`result switch { Succeeded<Order>(var order) => ... }` のように結果そのものも照合できる。
 
 ## 消費側の検査
 

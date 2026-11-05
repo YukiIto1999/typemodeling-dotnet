@@ -85,8 +85,8 @@ public sealed partial record OrderId
 {
     private static Result<Guid, OrderIdFailure> Parse(Guid raw) =>
         raw == Guid.Empty
-            ? new Result<Guid, OrderIdFailure>.Failed(new OrderIdFailure.Empty())
-            : new Result<Guid, OrderIdFailure>.Succeeded(raw);
+            ? Result.Failed<OrderIdFailure>(new OrderIdFailure.Empty())
+            : Result.Succeeded(raw);
 }
 ```
 
@@ -101,9 +101,30 @@ Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
 ```csharp
 using TypeModeling.Domain;
 
-Result<int, ParseFailure> parsed = ParsePort(input);
-var doubled = parsed.Map(n => n * 2);
+Result<Order, OrderFailure> Place(Cart cart)
+{
+    if (Price(cart).IsFailed(out var failed, out var price))
+        return failed;
+
+    return price > Limit
+        ? Result.Failed<OrderFailure>(new OrderFailure.OverLimit(price))
+        : Result.Succeeded(new Order(cart, price));
+}
+
+string text = Place(cart).Value switch
+{
+    Succeeded<Order>(var order) => order.ToString(),
+    Failed<OrderFailure>(var failure) => failure.ToString(),
+};
 ```
+
+`Result<TValue, TFailure>` is a C# 15 union type whose case types are `Succeeded<TValue>` and `Failed<TFailure>`.
+`Failed<TFailure>` carries only the failure type, so `IsFailed` passes a failure to a result of another value type unchanged.
+`Result.Succeeded` and `Result.Failed` infer the type arguments, and a new failure of a closed hierarchy names its base type, as in `Result.Failed<OrderFailure>(...)`.
+`Map`, `Bind`, `MapFailure`, query expressions, `Match`, `Sequence`, which stops at the first failure, and `Accumulate` and `Zip`, which collect every failure in a `NonEmptyList<TFailure>`, compose results.
+Its internal tag fixes 0 as uninitialized, so observing a `default` result throws, and TYPMOD015 rejects a `default` result at compile time.
+TYPMOD016 rejects casting `Value` to a case type, and TYPMOD017 warns when a result is discarded, as Rust does for `#[must_use]`.
+In C# 15, a switch can match the result itself, as in `result switch { Succeeded<Order>(var order) => ... }`.
 
 ## Consumer checks
 

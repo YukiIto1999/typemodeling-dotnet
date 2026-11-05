@@ -7,11 +7,9 @@ namespace TypeModeling.Tests;
 /// <summary>結果が functor と monad の法則を満たし成功と失敗を判別できることの property 検証</summary>
 public sealed class ResultLaws
 {
-    private static Result<int, string> Succeed(int value) =>
-        new Result<int, string>.Succeeded(value);
+    private static Result<int, string> Succeed(int value) => Result.Succeeded(value);
 
-    private static Result<int, string> Fail(string failure) =>
-        new Result<int, string>.Failed(failure);
+    private static Result<int, string> Fail(string failure) => Result.Failed(failure);
 
     private static Result<int, string> Continue(int value) =>
         value % 2 == 0 ? Succeed(value + 1) : Fail("odd");
@@ -20,10 +18,10 @@ public sealed class ResultLaws
         value > 100 ? Fail("large") : Succeed(value * 2);
 
     private static int Discriminate(Result<int, string> result) =>
-        result switch
+        result.Value switch
         {
-            Result<int, string>.Succeeded succeeded => succeeded.Value,
-            Result<int, string>.Failed => 0,
+            Succeeded<int> succeeded => succeeded.Value,
+            Failed<string> => 0,
         };
 
     /// <summary>Map の functor identity law</summary>

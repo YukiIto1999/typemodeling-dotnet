@@ -12,8 +12,8 @@ public sealed partial record SampleName
     /// <returns>前後の空白を除いた名前または空白だけであることを表す失敗</returns>
     private static Result<string, SampleNameFailure> Parse(string raw) =>
         string.IsNullOrWhiteSpace(raw)
-            ? new Result<string, SampleNameFailure>.Failed(new SampleNameFailure.Blank())
-            : new Result<string, SampleNameFailure>.Succeeded(raw.Trim());
+            ? Result.Failed<SampleNameFailure>(new SampleNameFailure.Blank())
+            : Result.Succeeded(raw.Trim());
 }
 
 /// <summary>テスト専用の名前の検証に失敗した理由を表す閉じた階層</summary>
