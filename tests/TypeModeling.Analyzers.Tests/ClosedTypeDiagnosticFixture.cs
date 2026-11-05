@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using TypeModeling.Analyzers.Diagnostics.ClosedEnum;
 using TypeModeling.Analyzers.Diagnostics.ClosedType;
 using TypeModeling.Analyzers.Diagnostics.UnreachableArm;
 using TypeModeling.Analyzers.Generation.ClosedSubtypeCount;
@@ -41,7 +42,7 @@ internal static class ClosedTypeDiagnosticFixture
             logAnalyzerExecutionTime: false,
             reportSuppressedDiagnostics: true);
         var withAnalyzers = compilation.WithAnalyzers(
-            [new ExhaustivenessSuppressor(), new ClosedTypeDeclarationAnalyzer(), new UnreachableArmAnalyzer()],
+            [new ExhaustivenessSuppressor(), new ClosedTypeDeclarationAnalyzer(), new UnreachableArmAnalyzer(), new ClosedEnumAnalyzer()],
             options);
 
         return await withAnalyzers.GetAllDiagnosticsAsync();

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `[Closed]` on an enum follows the `closed` enum planned for C# 16. TYPMOD018 requires a member for 0, TYPMOD019 rejects a conversion to the enum from anything but a constant of a declared member, and TYPMOD020 rejects an operator that returns the enum unless its constant operands produce a declared member.
 - `Result` composes with query expressions, `Match`, `Sequence`, which stops at the first failure, and `Accumulate` and `Zip`, which collect every failure in a `NonEmptyList<TFailure>`.
 - `NonEmptyList<T>` is an immutable list that has at least one item by construction.
 - `[MustUse]` marks types and methods whose values must not be discarded, as Rust does with `#[must_use]`, and `Result` carries it. TYPMOD017 warns when a call discards such a value without assigning it to a discard.

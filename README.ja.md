@@ -49,6 +49,22 @@ public abstract record PaymentState
 直接の派生は同じ assembly のどこに宣言してもよく、全ての直接の派生を扱う switch 式は pattern の形を問わず網羅になる。
 C# 15 へ移るときは、属性を `closed` 修飾子に替えて `abstract` を外す。
 
+### Closed enum
+
+```csharp
+[Closed]
+public enum Color
+{
+    Red,
+    Green,
+    Blue,
+}
+```
+
+enum に付けた `[Closed]` は、C# 16 で予定されている `closed` enum に対応する。
+全ての名前付きの member を扱う switch 式は網羅になる。
+TYPMOD018 は 0 に当たる member を求め、TYPMOD019 は宣言した member に当たる定数からの変換だけを許し、TYPMOD020 は enum を返す演算を宣言した member になる定数どうしだけに許す。
+
 ### Union
 
 ```csharp

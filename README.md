@@ -49,6 +49,22 @@ public abstract record PaymentState
 Direct subtypes may be declared anywhere in the same assembly, and a switch expression that handles every direct subtype is exhaustive whatever the shape of its patterns.
 To migrate to C# 15, replace the attribute with the `closed` modifier and remove `abstract`.
 
+### Closed enum
+
+```csharp
+[Closed]
+public enum Color
+{
+    Red,
+    Green,
+    Blue,
+}
+```
+
+`[Closed]` on an enum corresponds to the `closed` enum planned for C# 16.
+A switch expression that handles every named member is exhaustive.
+TYPMOD018 requires a member for 0, TYPMOD019 allows a conversion to the enum only from a constant of a declared member, and TYPMOD020 allows an operator that returns the enum only over constants that produce a declared member.
+
 ### Union
 
 ```csharp
