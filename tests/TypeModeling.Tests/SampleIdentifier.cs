@@ -12,12 +12,12 @@ public sealed partial record SampleIdentifier
     /// <returns>空でない識別子または空であることを表す失敗</returns>
     private static Result<Guid, SampleIdentifierFailure> Parse(Guid raw) =>
         raw == Guid.Empty
-            ? new Result<Guid, SampleIdentifierFailure>.Failed(new SampleIdentifierFailure.Empty())
-            : new Result<Guid, SampleIdentifierFailure>.Succeeded(raw);
+            ? Result.Failed<SampleIdentifierFailure>(new SampleIdentifierFailure.Empty())
+            : Result.Succeeded(raw);
 }
 
 /// <summary>テスト専用の識別子の検証に失敗した理由を表す閉じた階層</summary>
-[ClosedUnion]
+[Closed]
 public abstract record SampleIdentifierFailure
 {
     /// <summary>空以外の失敗理由の追加を閉じる基底の構築</summary>

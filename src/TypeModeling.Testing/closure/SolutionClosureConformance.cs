@@ -6,9 +6,9 @@ namespace TypeModeling.Testing.Closure;
 /// <summary>solution 閉包に対する構造規約の検査</summary>
 public static class SolutionClosureConformance
 {
-    /// <summary>閉じた判別共用体を識別する属性名</summary>
-    private const string ClosedUnionAttributeMetadataName =
-        "TypeModeling.Domain.ClosedUnionAttribute";
+    /// <summary>閉じた型を識別する属性名</summary>
+    private const string ClosedAttributeMetadataName =
+        "TypeModeling.Domain.ClosedAttribute";
 
     /// <summary>repo project inventory の閉包所属規約への違反</summary>
     /// <param name="closure">ロード済みの solution 閉包</param>
@@ -46,7 +46,7 @@ public static class SolutionClosureConformance
     public static IReadOnlyList<string> RepoProjectPaths(string repoRoot) =>
         RepoProjectInventory.ProjectPaths(repoRoot);
 
-    /// <summary>閉じた型階層の登録規約への違反</summary>
+    /// <summary>閉じた型階層の登録規約と、閉じた class の同一 assembly 規約への違反</summary>
     /// <param name="closure">ロード済みの solution 閉包</param>
     /// <returns>表示文字列順の違反一覧</returns>
     public static IReadOnlyList<string> ClosedHierarchyViolations(LoadedSolutionClosure closure)
@@ -64,19 +64,17 @@ public static class SolutionClosureConformance
                     .Select(candidate =>
                         $"base {Display(closure, baseType)} <- unregistered subtype {Display(closure, candidate)}");
             });
-        var closedUnionViolations = closure.ReflectionTypes
-            .Where(type => type.IsClass && HasAttribute(type, ClosedUnionAttributeMetadataName))
-            .SelectMany(baseType => ConcreteAssignableTypes(closure, baseType)
-                .Where(candidate =>
-                    candidate.DeclaringType != baseType
-                    || !candidate.IsSealed
-                    || !IsRecord(candidate))
-                .Select(candidate =>
-                    $"base {Display(closure, baseType)} <- subtype {Display(closure, candidate)} " +
-                    $"(directly-nested={candidate.DeclaringType == baseType}, " +
-                    $"sealed={candidate.IsSealed}, record={IsRecord(candidate)})"));
+        var closedViolations = closure.ReflectionTypes
+            .Select(candidate => (Candidate: candidate, Base: Definition(candidate.BaseType)))
+            .Where(pair =>
+                pair.Base is not null
+                && HasAttribute(pair.Base, ClosedAttributeMetadataName)
+                && pair.Candidate.Assembly != pair.Base.Assembly)
+            .Select(pair =>
+                $"base {Display(closure, pair.Base!)} <- subtype {Display(closure, pair.Candidate)} " +
+                "(direct subtype outside the assembly of the closed type)");
         return jsonViolations
-            .Concat(closedUnionViolations)
+            .Concat(closedViolations)
             .Order(StringComparer.Ordinal)
             .ToArray();
     }
@@ -130,13 +128,11 @@ public static class SolutionClosureConformance
         type.CustomAttributes.Any(attribute =>
             attribute.AttributeType.FullName == attributeMetadataName);
 
-    /// <summary>compiler 生成 clone method による record 判定</summary>
-    /// <param name="type">検査対象型</param>
-    /// <returns>record の場合に true</returns>
-    private static bool IsRecord(Type type) =>
-        type.GetMethod(
-            "<Clone>$",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly) is not null;
+    /// <summary>構築済み generic 型の型定義への正規化</summary>
+    /// <param name="type">正規化する型</param>
+    /// <returns>generic なら型定義、それ以外はそのままの型</returns>
+    private static Type? Definition(Type? type) =>
+        type is { IsGenericType: true, IsGenericTypeDefinition: false } ? type.GetGenericTypeDefinition() : type;
 
     /// <summary>違反元 project を含む型名の表示</summary>
     /// <param name="closure">ロード済みの solution 閉包</param>

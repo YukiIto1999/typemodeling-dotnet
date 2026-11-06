@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <!-- typemodeling パッケージに同梱する compile-time engine。
-       [ValueObject] の検証付き構築の生成と [ClosedUnion] の網羅抑止を担う。 -->
+       [ValueObject] の検証付き構築の生成と [Closed] の網羅抑止を担う。 -->
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
   </ItemGroup>

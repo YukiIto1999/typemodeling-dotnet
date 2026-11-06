@@ -36,7 +36,7 @@ public sealed class GuardedTypeUsageWalk
     /// <param name="compilation">検査対象 compilation</param>
     /// <returns>guarded type を使う場合に true</returns>
     [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high",
-        Justification = "S3776 の導入前からある複雑度 16 の既存違反。基線台帳 S3776-006 に記録し、15 以下へ分割した時点で抑止を外す")]
+        Justification = "S3776 の導入前からある複雑度 16 の既存違反。15 以下へ分割した時点で抑止を外す")]
     public bool UsesGuardedFeature(Compilation compilation)
     {
         ArgumentNullException.ThrowIfNull(compilation);

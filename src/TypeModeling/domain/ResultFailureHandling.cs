@@ -12,11 +12,7 @@ public static class ResultFailureHandling
     /// <returns>失敗の型を写した結果</returns>
     public static Result<TValue, TFailureMapped> MapFailure<TFailure, TFailureMapped, TValue>(
         this Result<TValue, TFailure> result, Func<TFailure, TFailureMapped> selector) =>
-        result switch
-        {
-            Result<TValue, TFailure>.Succeeded succeeded =>
-                new Result<TValue, TFailureMapped>.Succeeded(succeeded.Value),
-            Result<TValue, TFailure>.Failed failed =>
-                new Result<TValue, TFailureMapped>.Failed(selector(failed.Failure)),
-        };
+        result.IsFailed(out var failed, out var value)
+            ? Result.Failed(selector(failed.Failure))
+            : Result.Succeeded(value);
 }

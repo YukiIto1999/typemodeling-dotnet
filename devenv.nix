@@ -179,7 +179,7 @@ in
     echo "verify-full: 生成 $generated 件、未検出 $(jq length "$current") 件、前回の全量から増えた未検出 $(jq length <<<"$new") 件"
 
     if [ "$(jq length <<<"$new")" -gt 0 ]; then
-      backlog=docs/backlog/mutation.md
+      backlog=work/backlog/mutation.md
       mkdir -p "$(dirname "$backlog")"
       {
         printf '\n## %s の verify-full(HEAD %s)\n\n' "$(date -Iseconds)" "$(git rev-parse --short HEAD)"

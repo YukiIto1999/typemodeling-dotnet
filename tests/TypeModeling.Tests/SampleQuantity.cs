@@ -12,12 +12,12 @@ public sealed partial record SampleQuantity
     /// <returns>正の数量または正でない値を持つ失敗</returns>
     private static Result<int, SampleQuantityFailure> Parse(int raw) =>
         raw <= 0
-            ? new Result<int, SampleQuantityFailure>.Failed(new SampleQuantityFailure.NotPositive(raw))
-            : new Result<int, SampleQuantityFailure>.Succeeded(raw);
+            ? Result.Failed<SampleQuantityFailure>(new SampleQuantityFailure.NotPositive(raw))
+            : Result.Succeeded(raw);
 }
 
 /// <summary>テスト専用の数量の検証に失敗した理由を表す閉じた階層</summary>
-[ClosedUnion]
+[Closed]
 public abstract record SampleQuantityFailure
 {
     /// <summary>正でないこと以外の失敗理由の追加を閉じる基底の構築</summary>

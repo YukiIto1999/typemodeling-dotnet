@@ -22,23 +22,23 @@ public sealed class AnalyzerAttachmentEditorConfigTests
             root = true
 
             [ClosedTypes.cs]
-            dotnet_diagnostic.TYPMOD001.severity = {{severity}}
+            dotnet_diagnostic.TYPMOD002.severity = {{severity}}
 
             [DoesNotMatch.cs]
-            dotnet_diagnostic.TCSSUP001.severity = none
+            dotnet_diagnostic.FIXSUP001.severity = none
             """);
 
         AssertPolicyViolationContainingAll(
             await ViolationsAsync(fixture, CancellationToken.None),
-            [".editorconfig", "TYPMOD001", severity],
-            "適用対象 .editorconfig で TYPMOD001 を " + severity + " にする反例を検出できなかった");
+            [".editorconfig", "TYPMOD002", severity],
+            "適用対象 .editorconfig で TYPMOD002 を " + severity + " にする反例を検出できなかった");
     }
 
     /// <summary>適用対象 editorconfig wildcard による診断抑止の拒否</summary>
     /// <param name="diagnosticPattern">検査対象の診断 prefix wildcard</param>
     [Test]
     [Arguments("TYPMOD*")]
-    [Arguments("TCSSUP*")]
+    [Arguments("FIXSUP*")]
     public async Task Applicable_editorconfig_wildcard_suppression_is_rejected(string diagnosticPattern)
     {
         using var fixture = new TemporaryAnalyzerAttachmentFixture();
@@ -49,7 +49,7 @@ public sealed class AnalyzerAttachmentEditorConfigTests
             dotnet_diagnostic.{{diagnosticPattern}}.severity = none
 
             [DoesNotMatch.cs]
-            dotnet_diagnostic.TYPMOD001.severity = none
+            dotnet_diagnostic.TYPMOD002.severity = none
             """);
 
         AssertPolicyViolationContainingAll(

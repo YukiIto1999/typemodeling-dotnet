@@ -5,17 +5,13 @@ namespace TypeModeling.Testing.Attach;
 /// <summary>closed type の semantic 利用検出器</summary>
 public sealed class ClosedTypeUsageDetector : IGuardedFeatureDetector
 {
-    /// <summary>closed union 属性の metadata 名</summary>
-    private const string ClosedUnionAttributeMetadataName =
-        "TypeModeling.Domain.ClosedUnionAttribute";
+    /// <summary>閉じた型の属性の metadata 名</summary>
+    private const string ClosedAttributeMetadataName =
+        "TypeModeling.Domain.ClosedAttribute";
 
-    /// <summary>JSON polymorphic 属性の metadata 名</summary>
-    private const string JsonPolymorphicAttributeMetadataName =
-        "System.Text.Json.Serialization.JsonPolymorphicAttribute";
-
-    /// <summary>JSON derived type 属性の metadata 名</summary>
-    private const string JsonDerivedTypeAttributeMetadataName =
-        "System.Text.Json.Serialization.JsonDerivedTypeAttribute";
+    /// <summary>C# 15 の union 型の属性の metadata 名</summary>
+    private const string UnionAttributeMetadataName =
+        "System.Runtime.CompilerServices.UnionAttribute";
 
     /// <summary>closed type 利用の semantic 走査</summary>
     private static readonly GuardedTypeUsageWalk UsageWalk = new(
@@ -49,18 +45,7 @@ public sealed class ClosedTypeUsageDetector : IGuardedFeatureDetector
     /// <summary>閉じた集合を宣言する型の判定</summary>
     /// <param name="type">検査対象の名前付き型</param>
     /// <returns>閉じた集合を宣言する場合に true</returns>
-    private static bool DefinesClosedSet(INamedTypeSymbol type)
-    {
-        var attributes = type.GetAttributes();
-        if (attributes.Any(attribute =>
-                attribute.AttributeClass?.ToDisplayString() == ClosedUnionAttributeMetadataName))
-        {
-            return true;
-        }
-
-        return attributes.Any(attribute =>
-                   attribute.AttributeClass?.ToDisplayString() == JsonPolymorphicAttributeMetadataName) &&
-               attributes.Any(attribute =>
-                   attribute.AttributeClass?.ToDisplayString() == JsonDerivedTypeAttributeMetadataName);
-    }
+    private static bool DefinesClosedSet(INamedTypeSymbol type) =>
+        type.GetAttributes().Any(attribute =>
+            attribute.AttributeClass?.ToDisplayString() is ClosedAttributeMetadataName or UnionAttributeMetadataName);
 }
