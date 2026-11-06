@@ -49,6 +49,10 @@ commit の件名は `型: 要約` の一行で書き、型はブランチの pre
 | `verify-push` | T2 | 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling と TypeModeling.Analyzers の push の基点から変更した行の mutation(未検出 0 件)                      |
 | `verify-full` | T3 | なし  | release の前 | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation(gate にせず、前回の全量から増えた未検出 mutant を backlog へ追記する) |
 
+時間予算は、root の `verification-budget.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
+push フックはこの予算で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。
+push の前には、index・作業ツリー・未追跡 file に差分を残さない。
+
 push の基点は、upstream を持つ枝では upstream との分岐点とし、持たない枝では `origin/develop` との分岐点とする。
 基点や差分を取れない実行は、失敗とする。
 mutation testing には、`devenv.yaml` で release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使う。
