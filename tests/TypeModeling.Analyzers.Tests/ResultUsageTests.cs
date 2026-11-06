@@ -114,9 +114,7 @@ public sealed class ResultUsageTests
         var compilation = CSharpCompilation.Create(
             $"result-usage-{Guid.NewGuid():N}",
             [CSharpSyntaxTree.ParseText(source), CSharpSyntaxTree.ParseText(Domain)],
-            [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-                .Split(Path.PathSeparator)
-                .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))],
+            CompilationReferences.Platform,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var diagnostics = await compilation
             .WithAnalyzers([new ResultUsageAnalyzer(), new MustUseAnalyzer()])

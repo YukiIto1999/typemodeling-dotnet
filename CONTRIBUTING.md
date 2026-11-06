@@ -55,6 +55,9 @@ mutation testing には、`devenv.yaml` で release タグの commit に固定�
 変更した行の mutation は、mutation-dotnet の `--changed-lines` で変更した行に重なる mutant だけを生成し、その未検出を `changed-lines` command が報告の生存と未被覆の合計で数える。
 生き残った mutant を直した後は、`devenv shell mutation-changed-lines` で変更した行の mutation だけを再実行できる。
 
+analyzer のテストは、実行環境の framework assembly の metadata 参照を同一 process 内で再利用する。
+compilation と generator driver は検査ごとに作り、mutant の process 隔離と 2 worker の上限は維持する。
+
 S3776 の既存違反を `SuppressMessage` で抑止する場合は、Justification に違反の複雑度と、15 以下へ分割した時点で抑止を外すことを書く。
 新しい違反には抑止を加えず、15 以下へ分割する。
 

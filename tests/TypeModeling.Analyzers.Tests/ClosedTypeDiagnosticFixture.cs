@@ -104,14 +104,7 @@ internal static class ClosedTypeDiagnosticFixture
         return CSharpCompilation.Create(
             $"{name}-{Guid.NewGuid():N}",
             [.. sources.Select(source => CSharpSyntaxTree.ParseText(source, parseOptions))],
-            [.. PlatformReferences(), .. references],
+            CompilationReferences.Platform.AddRange(references),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
     }
-
-    /// <summary>実行環境の framework assembly の参照</summary>
-    /// <returns>framework の metadata 参照</returns>
-    private static ImmutableArray<MetadataReference> PlatformReferences() =>
-        [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))];
 }

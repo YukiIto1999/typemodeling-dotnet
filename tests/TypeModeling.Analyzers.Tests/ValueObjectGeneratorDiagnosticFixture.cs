@@ -36,7 +36,7 @@ internal static class ValueObjectGeneratorDiagnosticFixture
                 CSharpSyntaxTree.ParseText(DomainSource, parseOptions),
                 CSharpSyntaxTree.ParseText(source, parseOptions),
             ],
-            References(),
+            CompilationReferences.Platform,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [new ValueObjectGenerator().AsSourceGenerator()],
@@ -80,13 +80,6 @@ internal static class ValueObjectGeneratorDiagnosticFixture
                 reason);
         await Assert.That(result.GeneratedSources).IsEmpty();
     }
-
-    /// <summary>generator probe の metadata 参照</summary>
-    /// <returns>実行環境の metadata 参照</returns>
-    private static ImmutableArray<MetadataReference> References() =>
-        [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))];
 
     /// <summary>ValueObject generator の観測結果</summary>
     /// <param name="Compilation">生成反映後 compilation</param>

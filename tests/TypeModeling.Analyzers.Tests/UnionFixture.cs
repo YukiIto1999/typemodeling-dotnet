@@ -64,9 +64,7 @@ internal static class UnionFixture
         var compilation = CSharpCompilation.Create(
             $"union-probe-{Guid.NewGuid():N}",
             [CSharpSyntaxTree.ParseText(source, parseOptions)],
-            [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-                .Split(Path.PathSeparator)
-                .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))],
+            CompilationReferences.Platform,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         CSharpGeneratorDriver
             .Create([new UnionGenerator().AsSourceGenerator()], parseOptions: parseOptions)
