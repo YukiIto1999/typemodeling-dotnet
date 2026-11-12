@@ -46,8 +46,8 @@ commit の件名は `型: 要約` の一行で書き、型はブランチの pre
 | 入口          | 段 | 予算  | 実行する時点 | 中身                                                                                                                                         |
 | ------------- | -- | ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `verify`      | T1 | 2 分  | commit の前  | analyzer の警告をエラー扱いにした build(S3776 の認知的複雑度 15 を含む)、TypeModeling.Tests、TypeModeling.Analyzers.Tests                 |
-| `verify-push` | T2 | 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling と TypeModeling.Analyzers の push の基点から変更した行の mutation(未検出 0 件)                      |
-| `verify-full` | T3 | なし  | release の前 | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation(gate にせず、前回の全量から増えた未検出 mutant を backlog へ追記する) |
+| `verify-push` | T2 | 15 分 | push の前    | `verify` と SelfAuditTests |
+| `verify-full` | T3 | なし  | 分析が必要なとき | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation と未検出 mutant の記録 |
 
 時間予算は、root の `verification-budget.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
 push フックはこの予算で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。
@@ -57,7 +57,10 @@ push の基点は、upstream を持つ枝では upstream との分岐点とし�
 基点や差分を取れない実行は、失敗とする。
 mutation testing には、`devenv.yaml` で release タグの commit に固定して build した [mutation-dotnet](https://github.com/YukiIto1999/mutation-dotnet) を使う。
 変更した行の mutation は、mutation-dotnet の `--changed-lines` で変更した行に重なる mutant だけを生成し、その未検出を `changed-lines` command が報告の生存と未被覆の合計で数える。
-生き残った mutant を直した後は、`devenv shell mutation-changed-lines` で変更した行の mutation だけを再実行できる。
+変更した行だけを分析するときは、`devenv shell mutation-changed-lines` を実行する。
+分析の生存・未被覆・未分類・未実行や score は、commit、push、merge、release の承認条件にしない。
+元の report と終了状態を保持し、未検出を製品の欠陥、test の不足、等価変異、許容する差分、別の property の責任範囲、runner の失敗に分類する。
+修正した振る舞いを検証するために再実行し、未検出をゼロにするだけの再実行は行わない。
 
 analyzer のテストは、実行環境の framework assembly の metadata 参照を同一 process 内で再利用する。
 compilation と generator driver は検査ごとに作り、mutant の process 隔離と 2 worker の上限は維持する。
@@ -77,7 +80,7 @@ README は英語版を正本とし、日本語版を同じ変更で正本に合�
 
 ## リリース
 
-1. `develop` で `devenv shell verify-full` を実行し、`work/backlog/mutation.md` へ追記された未検出 mutant をテストまたは仕様の修正候補として確かめる。
+1. `develop` で `devenv shell verify-push` を通す。既存の mutation 分析に未解決の製品の欠陥がある場合は修正し、分析の未実行や未検出数を release の承認条件にしない。
 2. `CHANGELOG.md` に、セマンティックバージョニングに従う該当バージョンの節を追記する。
 3. `chore: X.Y.Z のリリースを準備` でコミットし、`develop` へマージする。
 4. `main` を該当コミットへ進め、`vX.Y.Z` タグを付ける。

@@ -59,7 +59,7 @@ in
     done
   '';
 
-  # T2(予算 15 分): T1、出荷する検査の自己適用、push する範囲で変更した行の mutation
+  # T2(予算 15 分): T1 と出荷する検査の自己適用
   scripts.verify-push.exec = ''
     set -euo pipefail
 
@@ -68,10 +68,9 @@ in
     dotnet tests/TypeModeling.Testing.Tests/bin/Debug/net10.0/TypeModeling.Testing.Tests.dll \
       --no-ansi --disable-logo --no-progress \
       --treenode-filter '/*/TypeModeling.Testing.Tests/SelfAuditTests/*'
-    mutation-changed-lines
   '';
 
-  # push する範囲で変更した行の mutation。生き残った mutant を直した後は、これだけを再実行できる
+  # 変更した行の mutation 分析。未検出数と終了状態を保存し、受入検証とは分離する
   scripts.mutation-changed-lines.exec = ''
     set -euo pipefail
 
