@@ -135,7 +135,12 @@ string text = Place(cart).Value switch
 `Result.Succeeded` と `Result.Failed` は型引数を推論し、閉じた階層の新しい失敗は `Result.Failed<OrderFailure>(...)` のように基底型を書いて作る。
 `Map`、`Bind`、`MapFailure`、query 式、`Match` が結果を組み合わせる。
 `Sequence` は最初の失敗で止まり、`Accumulate` と `Zip` は全ての失敗を `NonEmptyList<TFailure>` に集める。
-内部の tag は 0 を未初期化に固定するので、`default` の結果の観測は例外を送出する。
+内部の tag は 0 を未初期化に固定する。
+`HasValue` だけが未初期化でも安全に使える初期化状態の問い合わせであり、`default` の結果には `false` を返す。
+この `false` は業務上の失敗や payload の欠如を表さない。
+payload や case の取り出しと意味的な観測（`Value`、両方の `TryGetValue`、`IsFailed`、`Match`、等価比較、ハッシュ値、文字列変換）は、未初期化の結果に対して `InvalidOperationException` を送出する。
+等価比較は case が違っても両辺の初期化を確認し、未初期化の結果は `null` や無関係な型の object との比較も拒否する。
+型が許す `null` payload で構築した成功や失敗は初期化済みであり、それぞれの case を保つ。
 
 ### 値オブジェクト
 

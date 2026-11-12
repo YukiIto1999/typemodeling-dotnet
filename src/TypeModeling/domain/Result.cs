@@ -6,7 +6,8 @@ namespace TypeModeling.Domain;
 /// <summary>純粋な計算の成功と想定内の失敗を表す C# 15 の union 型</summary>
 /// <remarks>
 /// case 型は <see cref="Succeeded{TValue}"/> と <see cref="Failed{TFailure}"/> で、内部の tag は 0 を未初期化、1 を成功、2 を失敗に固定する。
-/// 未初期化の値の観測は欠陥として例外を送出する。
+/// <see cref="HasValue"/> だけが許す未初期化状態の問い合わせ
+/// それ以外の未初期化の観測に対する <see cref="InvalidOperationException"/> の送出
 /// </remarks>
 /// <typeparam name="TValue">成功したときの値の型</typeparam>
 /// <typeparam name="TFailure">想定内の失敗を表す型</typeparam>
@@ -57,22 +58,29 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
         _failure = failure;
     }
 
-    /// <summary>持つ case の値。未初期化なら null</summary>
-    public object? Value => _tag switch
+    /// <summary>初期化済みの結果が持つ case の値</summary>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
+    public object? Value
     {
-        SucceededTag => new Succeeded<TValue>(_value),
-        FailedTag => new Failed<TFailure>(_failure),
-        _ => null,
-    };
+        get
+        {
+            EnsureInitialized();
+            return _tag == SucceededTag
+                ? new Succeeded<TValue>(_value)
+                : new Failed<TFailure>(_failure);
+        }
+    }
 
-    /// <summary>case の値を持つかの判定</summary>
+    /// <summary>成功や値の有無ではなく初期化状態だけの判定</summary>
     public bool HasValue => _tag != UninitializedTag;
 
     /// <summary>成功の case の取得</summary>
     /// <param name="value">成功の case</param>
     /// <returns>成功なら true</returns>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
     public bool TryGetValue(out Succeeded<TValue> value)
     {
+        EnsureInitialized();
         value = new Succeeded<TValue>(_value);
         return _tag == SucceededTag;
     }
@@ -80,8 +88,10 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <summary>失敗の case の取得</summary>
     /// <param name="value">失敗の case</param>
     /// <returns>失敗なら true</returns>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
     public bool TryGetValue(out Failed<TFailure> value)
     {
+        EnsureInitialized();
         value = new Failed<TFailure>(_failure);
         return _tag == FailedTag;
     }
@@ -91,6 +101,7 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <param name="value">成功のときの成功の値</param>
     /// <returns>失敗なら true</returns>
     /// <remarks>失敗を呼び出し元の Result へそのまま返す早期 return に使う</remarks>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
     public bool IsFailed(out Failed<TFailure> failed, [MaybeNullWhen(true)] out TValue value)
     {
         EnsureInitialized();
@@ -104,6 +115,7 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <param name="onSucceeded">成功の値からの変換</param>
     /// <param name="onFailed">失敗の値からの変換</param>
     /// <returns>どちらかの変換の結果</returns>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
     public TResult Match<TResult>(Func<TValue, TResult> onSucceeded, Func<TFailure, TResult> onFailed)
     {
         EnsureInitialized();
@@ -123,42 +135,60 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <summary>同じ case と同じ値を持つかの判定</summary>
     /// <param name="other">比較する相手</param>
     /// <returns>同じ case と値なら true</returns>
-    public bool Equals(Result<TValue, TFailure> other) =>
-        _tag == other._tag && _tag switch
-        {
-            SucceededTag => EqualityComparer<TValue>.Default.Equals(_value, other._value),
-            FailedTag => EqualityComparer<TFailure>.Default.Equals(_failure, other._failure),
-            _ => true,
-        };
+    /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
+    public bool Equals(Result<TValue, TFailure> other)
+    {
+        EnsureInitialized();
+        other.EnsureInitialized();
+        return _tag == other._tag && (_tag == SucceededTag
+            ? EqualityComparer<TValue>.Default.Equals(_value, other._value)
+            : EqualityComparer<TFailure>.Default.Equals(_failure, other._failure));
+    }
 
     /// <summary>同じ case と同じ値を持つ Result かの判定</summary>
     /// <param name="obj">比較する相手</param>
     /// <returns>同じ case と値の Result なら true</returns>
-    public override bool Equals(object? obj) => obj is Result<TValue, TFailure> other && Equals(other);
+    /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
+    public override bool Equals(object? obj)
+    {
+        EnsureInitialized();
+        return obj is Result<TValue, TFailure> other && Equals(other);
+    }
 
     /// <summary>case と値のハッシュ値</summary>
     /// <returns>case と値から求めたハッシュ値</returns>
-    public override int GetHashCode() => _tag switch
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
+    public override int GetHashCode()
     {
-        SucceededTag => HashCode.Combine(_tag, _value),
-        FailedTag => HashCode.Combine(_tag, _failure),
-        _ => 0,
-    };
+        EnsureInitialized();
+        return _tag == SucceededTag
+            ? HashCode.Combine(_tag, _value)
+            : HashCode.Combine(_tag, _failure);
+    }
 
     /// <summary>持つ case の文字列表現</summary>
-    /// <returns>case の文字列表現。未初期化なら空文字列</returns>
-    public override string ToString() => Value?.ToString() ?? string.Empty;
+    /// <returns>初期化済みの結果が持つ case の文字列表現</returns>
+    /// <exception cref="InvalidOperationException">未初期化の結果</exception>
+    public override string ToString()
+    {
+        EnsureInitialized();
+        return _tag == SucceededTag
+            ? new Succeeded<TValue>(_value).ToString()
+            : new Failed<TFailure>(_failure).ToString();
+    }
 
     /// <summary>同じ case と同じ値を持つかの等価演算</summary>
     /// <param name="left">左辺</param>
     /// <param name="right">右辺</param>
     /// <returns>同じ case と値なら true</returns>
+    /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
     public static bool operator ==(Result<TValue, TFailure> left, Result<TValue, TFailure> right) => left.Equals(right);
 
     /// <summary>違う case か違う値を持つかの非等価演算</summary>
     /// <param name="left">左辺</param>
     /// <param name="right">右辺</param>
     /// <returns>違う case か値なら true</returns>
+    /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
     public static bool operator !=(Result<TValue, TFailure> left, Result<TValue, TFailure> right) => !left.Equals(right);
 
     /// <summary>未初期化の観測を欠陥として閉じる確認</summary>

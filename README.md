@@ -135,7 +135,7 @@ string text = Place(cart).Value switch
 `Result.Succeeded` and `Result.Failed` infer the type arguments, and a new failure of a closed hierarchy names its base type, as in `Result.Failed<OrderFailure>(...)`.
 `Map`, `Bind`, `MapFailure`, query expressions, and `Match` compose results.
 `Sequence` stops at the first failure, while `Accumulate` and `Zip` collect every failure in a `NonEmptyList<TFailure>`.
-The internal tag fixes 0 as uninitialized, so observing a `default` result throws.
+The internal tag fixes 0 as uninitialized. `HasValue` is the only safe initialization-status query: it returns `false` for a `default` result, not a business failure or an absent payload. Every payload or case projection and semantic observation (`Value`, both `TryGetValue` overloads, `IsFailed`, `Match`, equality, hashing, and string conversion) throws `InvalidOperationException` on an uninitialized result. Equality checks both operands, even when their cases differ; an uninitialized result also rejects comparison with `null` or an unrelated object. A constructed success or failure with a permitted `null` payload remains initialized and keeps its distinct case.
 
 ### Value object
 
