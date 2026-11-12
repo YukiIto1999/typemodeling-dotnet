@@ -203,6 +203,7 @@ dotnet_diagnostic.TYPMOD021.severity = error
 TYPMOD021 checks switch expressions and switch statements.
 The input of the switch, or an element of a tuple input, is protected when its type is a closed class, a closed enum, a type parameter constrained to a closed class, or the `Value` of a union such as `Result`.
 A protected input is checked even when no arm names a case, so `state switch { _ => 1 }` and a `default:` label are rejected.
+A tuple switch's `default:` label reports each distinct protected family it hides, rather than choosing one tuple element.
 A position inside a case, such as the payload of `Succeeded<T>(var value)` or a property of a case, is checked only where some arm names a case of it, so a payload that the switch does not branch on may be bound or discarded.
 An arm is rejected when its pattern can accept a case added later, that is, `_`, `var x`, the type itself, a base type of it, `object`, a relational pattern on an enum, `not` of a case, and a property or positional pattern that names no case, alone or combined by `or` and `and`.
 Patterns that name cases are accepted, such as `A or B`, `A and { ... }`, `Settled(var at)`, and `null`.

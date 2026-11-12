@@ -204,6 +204,7 @@ dotnet_diagnostic.TYPMOD021.severity = error
 TYPMOD021 は switch 式と switch 文を検査する。
 switch の入力と、組の入力の要素は、型が閉じた class、閉じた enum、閉じた class に制約された型引数、`Result` のような union の `Value` のどれかなら、守る位置になる。
 守る入力は、どの arm も case を挙げていなくても検査するので、`state switch { _ => 1 }` と `default:` は拒否される。
+組への switch の `default:` は、一つの要素だけでなく、隠してしまう守る型の集まりをそれぞれ重複なく診断する。
 case の中の位置、たとえば `Succeeded<T>(var value)` の中身や case の property は、どれかの arm がその位置の case を挙げて分岐するときだけ検査するので、switch が分岐しない中身は束縛しても discard してもよい。
 pattern が後から足す case を受け取りうる arm は拒否される。
 具体的には、`_`、`var x`、型そのもの、その基底型、`object`、enum への relational pattern、case への `not`、case を挙げない property pattern と positional pattern が、単独でも `or` と `and` の組合せでも該当する。

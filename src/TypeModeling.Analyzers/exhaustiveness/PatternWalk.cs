@@ -44,34 +44,33 @@ internal sealed class PatternWalk
         TypeText typeText,
         bool intoOpaque,
         Action<PatternVisit> visit) =>
-        new PatternWalk(typeText, intoOpaque, visit).Visit(pattern, path, true, false, false);
+        new PatternWalk(typeText, intoOpaque, visit).Visit(pattern, path, true, false);
 
     /// <summary>pattern の訪問と、部分 pattern の巡回</summary>
     /// <param name="pattern">訪れる pattern</param>
     /// <param name="path">pattern が当たる部分値への経路</param>
     /// <param name="isPosition">部分値に当てた pattern の最上位なら true</param>
-    /// <param name="opaque">この部分値が not か list pattern の内側にあるなら true</param>
-    /// <param name="negated">同じ部分値の not の内側にたどり着いたなら true</param>
-    private void Visit(IPatternOperation pattern, PatternPath path, bool isPosition, bool opaque, bool negated)
+    /// <param name="opaque">not か list pattern の内部を通る経路なら true</param>
+    private void Visit(IPatternOperation pattern, PatternPath path, bool isPosition, bool opaque)
     {
         _visit(new PatternVisit(path, pattern, isPosition, opaque));
         switch (pattern)
         {
             case IBinaryPatternOperation binary:
-                Visit(binary.LeftPattern, path, false, opaque, negated);
-                Visit(binary.RightPattern, path, false, opaque, negated);
+                Visit(binary.LeftPattern, path, false, opaque);
+                Visit(binary.RightPattern, path, false, opaque);
                 break;
             case INegatedPatternOperation negation when _intoOpaque:
-                Visit(negation.Pattern, path, false, opaque, true);
+                Visit(negation.Pattern, path, false, true);
                 break;
             case IRecursivePatternOperation recursive:
-                VisitRecursive(recursive, path, opaque || negated);
+                VisitRecursive(recursive, path, opaque);
                 break;
             case IListPatternOperation list when _intoOpaque:
                 VisitList(list, path);
                 break;
             case ISlicePatternOperation { Pattern: { } slice } when _intoOpaque:
-                Visit(slice, path, true, true, false);
+                Visit(slice, path, true, true);
                 break;
         }
     }
@@ -79,18 +78,18 @@ internal sealed class PatternWalk
     /// <summary>positional と property の部分 pattern の巡回</summary>
     /// <param name="recursive">調べる recursive pattern</param>
     /// <param name="path">pattern が当たる部分値への経路</param>
-    /// <param name="opaque">部分 pattern の部分値が not の内側にあるなら true</param>
+    /// <param name="opaque">not か list pattern の内部を通る経路なら true</param>
     private void VisitRecursive(IRecursivePatternOperation recursive, PatternPath path, bool opaque)
     {
         var narrowing = Narrowing(recursive);
         var elements = recursive.DeconstructionSubpatterns;
         for (var index = 0; index < elements.Length; index++)
-            Visit(elements[index], path.Element(narrowing, index, elements.Length), true, opaque, false);
+            Visit(elements[index], path.Element(narrowing, index, elements.Length), true, opaque);
 
         foreach (var property in recursive.PropertySubpatterns)
         {
             if (MemberPath(property.Member, path, narrowing) is { } memberPath)
-                Visit(property.Pattern, memberPath, true, opaque, false);
+                Visit(property.Pattern, memberPath, true, opaque);
         }
     }
 
@@ -102,7 +101,7 @@ internal sealed class PatternWalk
     {
         var elements = list.Patterns;
         for (var index = 0; index < elements.Length; index++)
-            Visit(elements[index], path.Element(null, index, elements.Length), true, true, false);
+            Visit(elements[index], path.Element(null, index, elements.Length), true, true);
     }
 
     /// <summary>recursive pattern に書く型</summary>

@@ -95,8 +95,11 @@ internal sealed class CatchAllArms
     private ImmutableArray<CatchAll> Report(ImmutableArray<MatchArm> arms)
     {
         var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>().ToList();
-        if (_positions.Values.OfType<CasePosition>().FirstOrDefault(position => position.IsScrutinee) is { } input)
-            reports.AddRange(arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, input.Name)));
+        foreach (var name in _positions.Values.OfType<CasePosition>()
+            .Where(position => position.IsScrutinee).Select(position => position.Name).Distinct())
+        {
+            reports.AddRange(arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, name)));
+        }
 
         return [.. reports];
     }

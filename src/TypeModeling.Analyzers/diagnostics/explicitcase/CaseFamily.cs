@@ -102,9 +102,6 @@ internal sealed class CaseFamily
         if (TypeLineage.IsAtOrBelow(_root, matched))
             return Acceptance.Always;
 
-        if (TypeLineage.IsAtOrBelow(matched, _root))
-            return Acceptance.Never;
-
         return matched.TypeKind == TypeKind.Interface ? Acceptance.Maybe : Acceptance.Never;
     }
 

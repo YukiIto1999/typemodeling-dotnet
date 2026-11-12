@@ -43,7 +43,7 @@ public sealed class ExplicitCaseAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeSwitchExpression(OperationAnalysisContext context)
     {
         var switchExpression = (ISwitchExpressionOperation)context.Operation;
-        Report(context, switchExpression.Value, [.. switchExpression.Arms.Select(ExpressionArm)]);
+        Report(context, switchExpression.Value, [.. switchExpression.Arms.Select(arm => new MatchArm(arm.Pattern, arm.Pattern.Syntax))]);
     }
 
     /// <summary>switch 文の case と default の label の報告</summary>
@@ -66,20 +66,14 @@ public sealed class ExplicitCaseAnalyzer : DiagnosticAnalyzer
             context.ReportDiagnostic(Diagnostic.Create(Rule, catchAll.Node.GetLocation(), catchAll.Family));
     }
 
-    /// <summary>switch 式の arm</summary>
-    /// <param name="arm">switch 式の arm の operation</param>
-    /// <returns>when が定数 true でなければ報告しない arm。compiler は網羅に数えない arm の欠落を報せる</returns>
-    private static MatchArm ExpressionArm(ISwitchExpressionArmOperation arm) =>
-        new(arm.Pattern, arm.Pattern.Syntax, Exempt: arm.Guard is not null && arm.Guard.ConstantValue is not { HasValue: true, Value: true });
-
     /// <summary>switch 文の case の label</summary>
     /// <param name="clause">case の label の operation</param>
     /// <returns>pattern の label と default の label。定数の label は case を挙げるだけなので null</returns>
     /// <remarks>switch 文は compiler が case の欠落を報せないので、when があっても arm を数える</remarks>
     private static MatchArm? StatementArm(ICaseClauseOperation clause) => clause switch
     {
-        IPatternCaseClauseOperation pattern => new MatchArm(pattern.Pattern, pattern.Pattern.Syntax, Exempt: false),
-        IDefaultCaseClauseOperation => new MatchArm(null, clause.Syntax, Exempt: false),
+        IPatternCaseClauseOperation pattern => new MatchArm(pattern.Pattern, pattern.Pattern.Syntax),
+        IDefaultCaseClauseOperation => new MatchArm(null, clause.Syntax),
         _ => null,
     };
 }
