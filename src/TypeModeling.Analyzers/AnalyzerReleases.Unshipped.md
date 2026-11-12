@@ -25,6 +25,7 @@ TYPMOD017 | TypeModeling | Warning | MustUse を付けた型と method の値を
 TYPMOD018 | TypeModeling | Error | 0 に当たる member のない閉じた enum の禁止(C# 16 の closed enum に対応)
 TYPMOD019 | TypeModeling | Error | 名前付きの member に当たらない値の閉じた enum への変換の禁止(C# 16 の closed enum に対応)
 TYPMOD020 | TypeModeling | Error | 名前付きの member に当たらない値を作る閉じた enum の演算の禁止(C# 16 の closed enum に対応)
+TYPMOD021 | TypeModeling | Disabled | 閉じた型の case を挙げず、後から足す case を受け取る arm の禁止(診断の設定で有効にする)
 
 ### Removed Rules
 

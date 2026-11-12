@@ -58,7 +58,7 @@ internal static class UnionFixture
     /// <param name="source">検査対象の C# source</param>
     /// <param name="languageVersion">検査対象の言語版</param>
     /// <returns>生成 source を含む compilation</returns>
-    private static Compilation Generate(string source, LanguageVersion languageVersion)
+    internal static Compilation Generate(string source, LanguageVersion languageVersion)
     {
         var parseOptions = new CSharpParseOptions(languageVersion);
         var compilation = CSharpCompilation.Create(

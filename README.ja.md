@@ -185,8 +185,35 @@ generator が private のコンストラクタと `Parse` の結果を返す `Cr
 | TYPMOD018 | Error | 閉じた enum は 0 に当たる member を持つ | closed enum |
 | TYPMOD019 | Error | 閉じた enum への変換は member に当たる定数から行う | closed enum |
 | TYPMOD020 | Error | 閉じた enum を返す演算は定数どうしで member を作る | closed enum |
+| TYPMOD021 | Error(既定で無効) | 閉じた型か union の `Value` への switch は case を一つずつ挙げ、後から足す case を受け取る arm を置かない | なし |
 
 抑止の TYPMOD101、TYPMOD102、TYPMOD103 は、C# 15 が網羅と判定する switch 式から CS8509、CS8524、CS8846 を外す。
+
+### case の明示
+
+C# は閉じた型への switch の末尾に catch-all の arm を置くことを許し、TypeModeling は既定でこの挙動を変えない。
+catch-all の arm は後から足した case も受け取るので、compiler は switch の case の欠落を報せなくなる。
+TYPMOD021 はその arm を拒否する診断であり、既定で無効で、標準の診断設定で有効にする。
+次は、プロジェクトが取り込む `.globalconfig` の例である。
+
+```ini
+is_global = true
+dotnet_diagnostic.TYPMOD021.severity = error
+```
+
+TYPMOD021 は switch 式と switch 文を検査する。
+switch の入力と、組の入力の要素は、型が閉じた class、閉じた enum、閉じた class に制約された型引数、`Result` のような union の `Value` のどれかなら、守る位置になる。
+守る入力は、どの arm も case を挙げていなくても検査するので、`state switch { _ => 1 }` と `default:` は拒否される。
+case の中の位置、たとえば `Succeeded<T>(var value)` の中身や case の property は、どれかの arm がその位置の case を挙げて分岐するときだけ検査するので、switch が分岐しない中身は束縛しても discard してもよい。
+pattern が後から足す case を受け取りうる arm は拒否される。
+具体的には、`_`、`var x`、型そのもの、その基底型、`object`、enum への relational pattern、case への `not`、case を挙げない property pattern と positional pattern が、単独でも `or` と `and` の組合せでも該当する。
+case を挙げる pattern は、`A or B`、`A and { ... }`、`Settled(var at)`、`null` のように許される。
+閉じた class を含む閉じた class は各段で数えるので、`Circle => ..., Rect.Square => ..., Rect => ...` では最後の arm が拒否される。
+定数 `true` でない `when` を持つ switch 式の arm は、compiler が網羅に数えず case の欠落を報せ続けるので許される。
+switch 文には compiler のその検査がないので、guard を持つ catch-all の label も拒否される。
+`not` の内側と list pattern の内側にある守る位置、および守る位置に当てた list pattern は、受け取る範囲を確かめられないので、switch がその位置で分岐するときは拒否される。
+そのような case は、`not` と list pattern の外で肯定形に書く。
+この診断は `is` 式と `if` の連なりを検査せず、union は switch の入力が `Value` の式そのものであるときだけ認識する。
 
 ## 消費側の検査
 

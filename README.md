@@ -185,8 +185,33 @@ The generator adds a private constructor and a `Create` method that returns the 
 | TYPMOD018 | Error | A closed enum has a member for 0 | Closed enums |
 | TYPMOD019 | Error | A conversion to a closed enum comes from a constant of a member | Closed enums |
 | TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
+| TYPMOD021 | Error, off by default | A switch over a closed type or a union `Value` names its cases and has no arm that accepts a case added later | None |
 
 The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.
+
+### Explicit cases
+
+C# lets a switch over a closed type end with a catch-all arm, and TypeModeling keeps that behavior by default.
+A catch-all arm also accepts a case added later, so the compiler no longer reports the switch as missing a case.
+TYPMOD021 rejects such arms, is disabled by default, and is enabled through the standard diagnostic configuration, for example in a `.globalconfig` that the project includes:
+
+```ini
+is_global = true
+dotnet_diagnostic.TYPMOD021.severity = error
+```
+
+TYPMOD021 checks switch expressions and switch statements.
+The input of the switch, or an element of a tuple input, is protected when its type is a closed class, a closed enum, a type parameter constrained to a closed class, or the `Value` of a union such as `Result`.
+A protected input is checked even when no arm names a case, so `state switch { _ => 1 }` and a `default:` label are rejected.
+A position inside a case, such as the payload of `Succeeded<T>(var value)` or a property of a case, is checked only where some arm names a case of it, so a payload that the switch does not branch on may be bound or discarded.
+An arm is rejected when its pattern can accept a case added later, that is, `_`, `var x`, the type itself, a base type of it, `object`, a relational pattern on an enum, `not` of a case, and a property or positional pattern that names no case, alone or combined by `or` and `and`.
+Patterns that name cases are accepted, such as `A or B`, `A and { ... }`, `Settled(var at)`, and `null`.
+A closed class that contains closed classes counts at each level, so `Circle => ..., Rect.Square => ..., Rect => ...` rejects the last arm.
+A switch expression arm with a `when` clause that is not the constant `true` is accepted, because the compiler does not count it toward exhaustiveness and still reports a missing case.
+A switch statement has no such compiler check, so a guarded catch-all label is rejected too.
+A protected position inside `not` or inside a list pattern, and a list pattern on a protected position, cannot be verified, so they are rejected whenever the switch branches on that position.
+Write such cases positively, outside `not` and list patterns.
+The diagnostic does not examine `is` expressions and `if` chains, and it recognizes a union only when the switch input is its `Value` expression itself.
 
 ## Consumer checks
 

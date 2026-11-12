@@ -34,7 +34,7 @@ internal static class ClosedTypeDiagnosticFixture
     /// <returns>抑止された診断を含む全ての診断</returns>
     internal static async Task<ImmutableArray<Diagnostic>> Run(string source, params MetadataReference[] references)
     {
-        var compilation = Compilation("closed-type-probe", [source, ClosedAttributeSource], references);
+        var compilation = ClosedCompilation(source, references);
         var options = new CompilationWithAnalyzersOptions(
             new AnalyzerOptions([]),
             onAnalyzerException: null,
@@ -47,6 +47,13 @@ internal static class ClosedTypeDiagnosticFixture
 
         return await withAnalyzers.GetAllDiagnosticsAsync();
     }
+
+    /// <summary>閉じた型の attribute を足した compilation の構築</summary>
+    /// <param name="source">検査対象の C# source</param>
+    /// <param name="references">追加で参照する assembly</param>
+    /// <returns>検査対象と attribute を含む compilation</returns>
+    internal static CSharpCompilation ClosedCompilation(string source, MetadataReference[] references) =>
+        Compilation("closed-type-probe", [source, ClosedAttributeSource], references);
 
     /// <summary>閉じた型を宣言する別 assembly の構築</summary>
     /// <param name="source">別 assembly の C# source</param>

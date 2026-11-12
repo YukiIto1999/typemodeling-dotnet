@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj" />
+    <!-- 実際の Result の Value を検査対象の source が参照する metadata として使う。 -->
+    <ProjectReference Include="../../src/TypeModeling/TypeModeling.csproj" />
   </ItemGroup>
 
   <ItemGroup>

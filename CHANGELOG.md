@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `[Closed]` on an enum follows the `closed` enum planned for C# 16. TYPMOD018 requires a member for 0, TYPMOD019 rejects a conversion to the enum from anything but a constant of a declared member, and TYPMOD020 rejects an operator that returns the enum unless its constant operands produce a declared member.
+- TYPMOD021 requires a switch expression or statement over a closed class, a closed enum, or the `Value` of a union such as `Result` to name its cases, by rejecting a catch-all arm that accepts a case added later. It is disabled by default, so the C# behavior is unchanged, and a project enables it with `dotnet_diagnostic.TYPMOD021.severity` in its diagnostic configuration. It protects the switch input and each element of a tuple input even when no arm names a case, checks a position inside a case only where an arm names a case of it, and rejects a protected position that it cannot verify inside `not` or a list pattern.
 - `Result` composes with query expressions, `Match`, `Sequence`, which stops at the first failure, and `Accumulate` and `Zip`, which collect every failure in a `NonEmptyList<TFailure>`.
 - `NonEmptyList<T>` is an immutable list that has at least one item by construction.
 - `[MustUse]` marks types and methods whose values must not be discarded, as Rust does with `#[must_use]`, and `Result` carries it. TYPMOD017 warns when a call discards such a value without assigning it to a discard.
