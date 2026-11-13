@@ -207,7 +207,12 @@ A tuple switch's `default:` label reports each distinct protected family it hide
 A position inside a case, such as the payload of `Succeeded<T>(var value)` or a property of a case, is checked only where some arm names a case of it, so a payload that the switch does not branch on may be bound or discarded.
 An arm is also rejected at its own pattern when the pattern leaves a protected position beneath it unwritten, because it accepts a case added later there.
 `_` or `var pair` over a tuple input that has a protected element, and `Done` or `Done { }` where another arm branches on the payload of `Done`, are rejected, once for each distinct protected type they hide.
+A `default:` label is judged like `_`, so over an input that is not protected it is rejected when it hides a protected position that another case branched on, and it reports each distinct protected family once.
 An arm that writes the position, such as `Done(var state)`, is judged at that position, and an arm that cannot match the case, such as `Skipped`, is accepted.
+An arm that only tests a type, such as `Base` or `IDisposable`, is judged by whether a value of its type can also be a value of the case that another arm branched on, using the C# identity, reference, boxing, and unboxing conversions in both directions.
+Variance counts, so `case IOut<object>` after `case Covariant { State: ... }` is rejected when `Covariant` implements `IOut<string>` and `IOut<T>` is covariant.
+A class that is not sealed and an interface can share a value, and so can two interfaces, while a sealed class, a struct, or an array and an interface it cannot be converted to cannot, so that arm is accepted.
+Numeric and user-defined conversions never count, and a type parameter is treated as able to share a value with any type.
 Patterns name the same position when they read the same value, however they are written.
 An element of a tuple is one position whether it is written by position, by element name, or as `Item1`.
 A property that a derived type inherits or overrides is one position whether it is written on the derived type or on the base type, and `{ A.B: p }` and `{ A: { B: p } }` name the same position.

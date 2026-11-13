@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 
@@ -63,13 +64,14 @@ internal sealed class PositionNode
     internal void Reveal() => IsTransparent = true;
 
     /// <summary>別経路で同じ値を取り出しうる位置の探索</summary>
+    /// <param name="conversions">型の重なりを判定する変換</param>
     /// <returns>入力からの全ての段が重なる自身以外の節</returns>
     /// <remarks>互いに重ならない派生型の経路の除外</remarks>
-    internal IEnumerable<PositionNode> Overlapping()
+    internal IEnumerable<PositionNode> Overlapping(TypeConversions conversions)
     {
         var level = new[] { Root };
         foreach (var step in Steps())
-            level = [.. level.SelectMany(node => node.Children.Where(child => child.Step.Overlaps(step)))];
+            level = [.. level.SelectMany(node => node.Children.Where(child => child.Step.Overlaps(step, conversions)))];
 
         return level.Where(node => node != this);
     }

@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using TypeModeling.Analyzers.Exhaustiveness;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 
@@ -62,7 +63,8 @@ public sealed class ExplicitCaseAnalyzer : DiagnosticAnalyzer
     {
         // operation 解析が渡す operation は、semantic model から作ったものである
         var typeText = new TypeText(context.Operation.SemanticModel!, context.Operation.Syntax.SpanStart);
-        foreach (var catchAll in CatchAllArms.Find(value, arms, typeText))
+        var conversions = new TypeConversions(context.Compilation);
+        foreach (var catchAll in CatchAllArms.Find(value, arms, typeText, conversions))
             context.ReportDiagnostic(Diagnostic.Create(Rule, catchAll.Node.GetLocation(), catchAll.Family));
     }
 

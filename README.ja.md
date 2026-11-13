@@ -213,7 +213,15 @@ switch の入力と、組の入力の要素は、型が閉じた class、閉じ�
 case の中の位置、たとえば `Succeeded<T>(var value)` の中身や case の property は、どれかの arm がその位置の case を挙げて分岐するときだけ検査するので、switch が分岐しない中身は束縛しても discard してもよい。
 pattern が下の守る位置を書かないときは、その位置でも後から足す case を受け取るので、その pattern で arm が拒否される。
 守る要素を持つ組の入力への `_` と `var pair`、別の arm が `Done` の中身で分岐しているときの `Done` と `Done { }` が該当し、隠す守る型ごとに一度診断する。
+`default:` は `_` と同じに判定するので、守らない入力でも、他の case が分岐した守る位置を隠すときは拒否され、隠す守る型の集まりを一つずつ重複なく診断する。
 位置を書く arm、たとえば `Done(var state)` はその位置で判定し、case に当たらない arm、たとえば `Skipped` は許される。
+`Base` や `IDisposable` のように型だけを調べる arm は、他の arm が分岐した case の値が、その型の値でもありうるかで判定する。
+判定には、C# の同一変換、参照変換、boxing 変換、unboxing 変換を、両方の向きで使う。
+`Covariant` が共変の `IOut<T>` の `IOut<string>` を実装するとき、variance も数えるので、`case Covariant { State: ... }` の後の `case IOut<object>` は拒否される。
+sealed でない class と interface は同じ値になりうる。
+interface 同士も同じ値になりうる。
+sealed な class、値型、配列は、変換できない interface と同じ値にならないので、その arm は許される。
+数値変換とユーザー定義変換は数えず、型引数はどの型とも同じ値になりうるものとして扱う。
 pattern は、同じ値を読むなら書き方によらず同じ位置になる。
 組の要素は、位置、要素名、`Item1` のどれで書いても一つの位置になる。
 派生の型が継承または override した property は、派生の型で書いても基底の型で書いても一つの位置になり、`{ A.B: p }` と `{ A: { B: p } }` は同じ位置を指す。

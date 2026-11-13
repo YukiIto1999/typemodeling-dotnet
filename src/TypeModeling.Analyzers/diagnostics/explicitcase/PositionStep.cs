@@ -50,9 +50,10 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
 
     /// <summary>同じ値を取り出しうる段かの判定</summary>
     /// <param name="other">比べる段</param>
-    /// <returns>重なる型の範囲で同じ値を取り出しうるなら true</returns>
-    /// <remarks>型引数を重なりうる範囲として扱う保守的な判定</remarks>
-    internal bool Overlaps(PositionStep other)
+    /// <param name="conversions">型の重なりを判定する変換</param>
+    /// <returns>同じ member か実装先の member を、重なる型の値から取り出しうるなら true</returns>
+    /// <remarks>型の重なりと member の同一性を別の根拠で判定する構成</remarks>
+    internal bool Overlaps(PositionStep other, TypeConversions conversions)
     {
         if (Index != other.Index)
             return false;
@@ -60,8 +61,8 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
         if (Provenance is null || other.Provenance is null)
             return Provenance is null && other.Provenance is null;
 
-        return MayShareValue(Scope, other.Scope)
-            && (SymbolEqualityComparer.Default.Equals(Provenance, other.Provenance) || IsImplementedBy(other) || other.IsImplementedBy(this));
+        return (SymbolEqualityComparer.Default.Equals(Provenance, other.Provenance) || IsImplementedBy(other) || other.IsImplementedBy(this))
+            && MayShareValue(Scope, other.Scope, conversions);
     }
 
     /// <summary>interface member と確定した実装先の照合</summary>
@@ -73,18 +74,18 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
         if (Provenance is not { ContainingType.TypeKind: TypeKind.Interface } member || member is not (IPropertySymbol or IMethodSymbol))
             return false;
 
-        if (concrete.Provenance is not { } actual || concrete.Scope is not { } scope || !IsConcrete(scope))
+        if (concrete.Provenance is not { } actual || concrete.Scope is not { } scope || !CannotBeReimplemented(scope))
             return false;
 
         return scope.FindImplementationForInterfaceMember(member) is { } implementation
             && SymbolEqualityComparer.Default.Equals(Slot(implementation), Slot(actual));
     }
 
-    /// <summary>派生による interface 再実装の不可能性の判定</summary>
+    /// <summary>派生による interface の再実装の不可能性の判定</summary>
     /// <param name="type">判定する型</param>
-    /// <returns>sealed な class か値型なら true</returns>
-    private static bool IsConcrete(ITypeSymbol type) =>
-        type is { TypeKind: TypeKind.Struct } or { TypeKind: TypeKind.Class, IsSealed: true };
+    /// <returns>sealed な型か値型なら true</returns>
+    private static bool CannotBeReimplemented(ITypeSymbol type) =>
+        type.TypeKind != TypeKind.TypeParameter && (type.IsSealed || type.IsValueType);
 
     /// <summary>property pattern の一つの member の段</summary>
     /// <param name="recursive">property pattern を持つ recursive pattern</param>
@@ -158,16 +159,12 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     };
 
     /// <summary>二つの型が同じ値の型になりうるかの判定</summary>
-    /// <param name="left">比べる型</param>
-    /// <param name="right">比べる型</param>
-    /// <returns>派生関係か型引数か未確定の型を通じて重なりうるなら true</returns>
-    private static bool MayShareValue(ITypeSymbol? left, ITypeSymbol? right)
-    {
-        if (left is null || right is null || left.TypeKind == TypeKind.TypeParameter || right.TypeKind == TypeKind.TypeParameter)
-            return true;
-
-        return TypeLineage.IsAtOrBelow(left, right) || TypeLineage.IsAtOrBelow(right, left);
-    }
+    /// <param name="left">比べる型か入力位置を表す null</param>
+    /// <param name="right">比べる型か入力位置を表す null</param>
+    /// <param name="conversions">型の重なりを判定する変換</param>
+    /// <returns>型を持たない位置か重なりうる型なら true</returns>
+    private static bool MayShareValue(ITypeSymbol? left, ITypeSymbol? right, TypeConversions conversions) =>
+        left is null || right is null || conversions.MayShare(left, right);
 
     /// <summary>compiler が作った record の Deconstruct の引数が返す property</summary>
     /// <param name="deconstruct">呼び出す Deconstruct か未使用を表す null</param>

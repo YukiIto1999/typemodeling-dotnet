@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using TypeModeling.Analyzers.Exhaustiveness;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 
@@ -14,14 +15,14 @@ internal sealed class CatchAllArms
     /// <summary>型名を解決する switch の位置の文脈</summary>
     private readonly TypeText _typeText;
 
+    /// <summary>型の重なりを判定する変換</summary>
+    private readonly TypeConversions _conversions;
+
     /// <summary>switch の入力の位置の節</summary>
     private readonly PositionNode _root;
 
     /// <summary>最上位の部分 pattern ごとの位置の節</summary>
     private readonly Dictionary<IPatternOperation, PositionNode> _tops = new();
-
-    /// <summary>入力から取り出す閉じた case を持つ位置</summary>
-    private readonly List<CasePosition> _scrutinees = [];
 
     /// <summary>報告するかを判定する、位置に当てた pattern</summary>
     private readonly List<Candidate> _candidates = [];
@@ -31,10 +32,12 @@ internal sealed class CatchAllArms
 
     /// <summary>入力位置を起点とする判定の初期化</summary>
     /// <param name="typeText">型名を解決する switch の位置の文脈</param>
+    /// <param name="conversions">型の重なりを判定する変換</param>
     /// <param name="root">switch の入力の位置の節</param>
-    private CatchAllArms(TypeText typeText, PositionNode root)
+    private CatchAllArms(TypeText typeText, TypeConversions conversions, PositionNode root)
     {
         _typeText = typeText;
+        _conversions = conversions;
         _root = root;
     }
 
@@ -42,11 +45,16 @@ internal sealed class CatchAllArms
     /// <param name="value">switch の入力の式</param>
     /// <param name="arms">switch の全ての arm</param>
     /// <param name="typeText">型名を解決する switch の位置の文脈</param>
+    /// <param name="conversions">型の重なりを判定する変換</param>
     /// <returns>報告する arm</returns>
-    internal static ImmutableArray<CatchAll> Find(IOperation value, ImmutableArray<MatchArm> arms, TypeText typeText)
+    internal static ImmutableArray<CatchAll> Find(
+        IOperation value,
+        ImmutableArray<MatchArm> arms,
+        TypeText typeText,
+        TypeConversions conversions)
     {
-        var scan = new CatchAllArms(typeText, new PositionNode(ScrutineePosition(value.Type, value), default, null));
-        scan.RegisterScrutinee(scan._root, value.Type, value);
+        var scan = new CatchAllArms(typeText, conversions, new PositionNode(ScrutineePosition(value.Type, value), default, null));
+        RegisterScrutinee(scan._root, value.Type, value);
         foreach (var arm in arms.Where(candidate => candidate.Pattern is not null))
             scan.Scan(arm);
 
@@ -65,11 +73,9 @@ internal sealed class CatchAllArms
     /// <param name="type">位置の型。型のない式なら null</param>
     /// <param name="operation">位置の式。組の要素の式が分からなければ null</param>
     /// <remarks>組は式の形でなく型で辿るので、組を返す呼び出しや入れ子の組の要素も入力の位置になる</remarks>
-    private void RegisterScrutinee(PositionNode node, ITypeSymbol? type, IOperation? operation)
+    private static void RegisterScrutinee(PositionNode node, ITypeSymbol? type, IOperation? operation)
     {
         node.Reveal();
-        if (node.Position is { } position)
-            _scrutinees.Add(position);
 
         if (type is not INamedTypeSymbol { IsTupleType: true } tuple)
             return;
@@ -103,14 +109,14 @@ internal sealed class CatchAllArms
             node.Reveal();
 
         if (!exempt && !visit.Opaque)
-            _coverings.Add(new Covering(node, visit.Pattern));
+            _coverings.Add(new Covering(node, visit.Pattern, _conversions));
 
         if (node.Position is not { } position)
             return;
 
         position.Note(visit.Pattern);
         if (!exempt)
-            _candidates.Add(new Candidate(node, position, visit.Pattern, visit.Opaque));
+            _candidates.Add(new Candidate(node, position, visit.Pattern, visit.Opaque, _conversions));
     }
 
     /// <summary>pattern が当たる位置の節</summary>
@@ -153,12 +159,13 @@ internal sealed class CatchAllArms
     /// <summary>記録した全ての arm の判定と、報告の収集</summary>
     /// <param name="arms">switch の全ての arm</param>
     /// <returns>報告する arm</returns>
+    /// <remarks>入力の位置と分岐で守られた下位の位置が持つ閉じた型の集まりごとの、default の label の重複しない報告</remarks>
     private ImmutableArray<CatchAll> Report(ImmutableArray<MatchArm> arms)
     {
         var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>()
             .Concat(_coverings.SelectMany(covering => covering.Report()))
             .ToList();
-        foreach (var name in _scrutinees.Select(position => position.Name).Distinct())
+        foreach (var name in _root.ProtectedNames().Distinct())
             reports.AddRange(arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, name)));
 
         return [.. reports.Distinct()];
@@ -169,7 +176,13 @@ internal sealed class CatchAllArms
     /// <param name="Position">pattern が当たる位置</param>
     /// <param name="Pattern">位置に当てた pattern の最上位</param>
     /// <param name="Opaque">not か list pattern の内側の位置なら true</param>
-    private readonly record struct Candidate(PositionNode Node, CasePosition Position, IPatternOperation Pattern, bool Opaque)
+    /// <param name="Conversions">型の重なりを判定する変換</param>
+    private readonly record struct Candidate(
+        PositionNode Node,
+        CasePosition Position,
+        IPatternOperation Pattern,
+        bool Opaque,
+        TypeConversions Conversions)
     {
         /// <summary>pattern が後から足す case を受け取る場合の報告</summary>
         /// <returns>保護対象の将来の case を受理する pattern の報告か null</returns>
@@ -177,7 +190,7 @@ internal sealed class CatchAllArms
         internal CatchAll? Report()
         {
             var pattern = Pattern;
-            var families = Position.Families(Node.Overlapping().Select(peer => peer.Position).OfType<CasePosition>());
+            var families = Position.Families(Node.Overlapping(Conversions).Select(peer => peer.Position).OfType<CasePosition>());
             var family = Opaque
                 ? families.FirstOrDefault()
                 : families.FirstOrDefault(candidate => candidate.Accepts(pattern) != Acceptance.Never);
@@ -188,7 +201,8 @@ internal sealed class CatchAllArms
     /// <summary>下位の位置を暗黙に受理する pattern の判定候補</summary>
     /// <param name="Node">pattern が当たる位置の節</param>
     /// <param name="Pattern">位置に当てた pattern の最上位</param>
-    private readonly record struct Covering(PositionNode Node, IPatternOperation Pattern)
+    /// <param name="Conversions">型の重なりを判定する変換</param>
+    private readonly record struct Covering(PositionNode Node, IPatternOperation Pattern, TypeConversions Conversions)
     {
         /// <summary>暗黙に受理される保護対象の位置の報告</summary>
         /// <returns>この pattern の構文に対応付けた保護対象の型ごとの報告</returns>
@@ -196,8 +210,9 @@ internal sealed class CatchAllArms
         internal IEnumerable<CatchAll> Report()
         {
             var pattern = Pattern;
-            return Node.Overlapping().Prepend(Node).SelectMany(owner => owner.Children)
-                .Where(part => PatternSilence.Toward(pattern, part) != Acceptance.Never)
+            var conversions = Conversions;
+            return Node.Overlapping(conversions).Prepend(Node).SelectMany(owner => owner.Children)
+                .Where(part => PatternSilence.Toward(pattern, part, conversions) != Acceptance.Never)
                 .SelectMany(part => part.ProtectedNames())
                 .Distinct()
                 .Select(name => new CatchAll(pattern.Syntax, name));
