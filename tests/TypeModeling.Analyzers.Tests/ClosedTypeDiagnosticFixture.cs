@@ -32,7 +32,10 @@ internal static class ClosedTypeDiagnosticFixture
     /// <param name="source">検査対象の C# source</param>
     /// <param name="references">追加で参照する assembly</param>
     /// <returns>抑止された診断を含む全ての診断</returns>
-    internal static async Task<ImmutableArray<Diagnostic>> Run(string source, params MetadataReference[] references)
+    internal static async Task<ImmutableArray<Diagnostic>> Run(
+        string source,
+        params MetadataReference[] references
+    )
     {
         var compilation = ClosedCompilation(source, references);
         var options = new CompilationWithAnalyzersOptions(
@@ -40,10 +43,17 @@ internal static class ClosedTypeDiagnosticFixture
             onAnalyzerException: null,
             concurrentAnalysis: false,
             logAnalyzerExecutionTime: false,
-            reportSuppressedDiagnostics: true);
+            reportSuppressedDiagnostics: true
+        );
         var withAnalyzers = compilation.WithAnalyzers(
-            [new ExhaustivenessSuppressor(), new ClosedTypeDeclarationAnalyzer(), new UnreachableArmAnalyzer(), new ClosedEnumAnalyzer()],
-            options);
+            [
+                new ExhaustivenessSuppressor(),
+                new ClosedTypeDeclarationAnalyzer(),
+                new UnreachableArmAnalyzer(),
+                new ClosedEnumAnalyzer(),
+            ],
+            options
+        );
 
         return await withAnalyzers.GetAllDiagnosticsAsync();
     }
@@ -52,8 +62,10 @@ internal static class ClosedTypeDiagnosticFixture
     /// <param name="source">検査対象の C# source</param>
     /// <param name="references">追加で参照する assembly</param>
     /// <returns>検査対象と attribute を含む compilation</returns>
-    internal static CSharpCompilation ClosedCompilation(string source, MetadataReference[] references) =>
-        Compilation("closed-type-probe", [source, ClosedAttributeSource], references);
+    internal static CSharpCompilation ClosedCompilation(
+        string source,
+        MetadataReference[] references
+    ) => Compilation("closed-type-probe", [source, ClosedAttributeSource], references);
 
     /// <summary>閉じた型を宣言する別 assembly の構築</summary>
     /// <param name="source">別 assembly の C# source</param>
@@ -61,17 +73,24 @@ internal static class ClosedTypeDiagnosticFixture
     /// <returns>検査対象から参照する metadata</returns>
     internal static MetadataReference Library(string source, bool recordSubtypeCounts = true)
     {
-        Compilation compilation = Compilation("closed-type-library", [source, ClosedAttributeSource], []);
+        Compilation compilation = Compilation(
+            "closed-type-library",
+            [source, ClosedAttributeSource],
+            []
+        );
         if (recordSubtypeCounts)
         {
-            CSharpGeneratorDriver.Create(new ClosedSubtypeCountGenerator())
+            CSharpGeneratorDriver
+                .Create(new ClosedSubtypeCountGenerator())
                 .RunGeneratorsAndUpdateCompilation(compilation, out compilation, out _);
         }
 
         using var stream = new MemoryStream();
         var result = compilation.Emit(stream);
         if (!result.Success)
-            throw new InvalidOperationException(string.Join(Environment.NewLine, result.Diagnostics));
+            throw new InvalidOperationException(
+                string.Join(Environment.NewLine, result.Diagnostics)
+            );
 
         return MetadataReference.CreateFromImage(stream.ToArray());
     }
@@ -81,8 +100,15 @@ internal static class ClosedTypeDiagnosticFixture
     /// <returns>generator が足した source</returns>
     internal static string SubtypeCountSource(string source)
     {
-        Compilation compilation = Compilation("closed-type-library", [source, ClosedAttributeSource], []);
-        var result = CSharpGeneratorDriver.Create(new ClosedSubtypeCountGenerator()).RunGenerators(compilation).GetRunResult();
+        Compilation compilation = Compilation(
+            "closed-type-library",
+            [source, ClosedAttributeSource],
+            []
+        );
+        var result = CSharpGeneratorDriver
+            .Create(new ClosedSubtypeCountGenerator())
+            .RunGenerators(compilation)
+            .GetRunResult();
         return result.GeneratedTrees.Single().ToString();
     }
 
@@ -90,28 +116,40 @@ internal static class ClosedTypeDiagnosticFixture
     /// <param name="diagnostics">検査結果の診断</param>
     /// <param name="id">探す診断の ID</param>
     /// <returns>抑止されていない診断</returns>
-    internal static ImmutableArray<Diagnostic> Active(ImmutableArray<Diagnostic> diagnostics, string id) =>
-        [.. diagnostics.Where(diagnostic => diagnostic.Id == id && !diagnostic.IsSuppressed)];
+    internal static ImmutableArray<Diagnostic> Active(
+        ImmutableArray<Diagnostic> diagnostics,
+        string id
+    ) => [.. diagnostics.Where(diagnostic => diagnostic.Id == id && !diagnostic.IsSuppressed)];
 
     /// <summary>指定した ID の、抑止された診断</summary>
     /// <param name="diagnostics">検査結果の診断</param>
     /// <param name="id">探す診断の ID</param>
     /// <returns>抑止された診断</returns>
-    internal static ImmutableArray<Diagnostic> Suppressed(ImmutableArray<Diagnostic> diagnostics, string id) =>
-        [.. diagnostics.Where(diagnostic => diagnostic.Id == id && diagnostic.IsSuppressed)];
+    internal static ImmutableArray<Diagnostic> Suppressed(
+        ImmutableArray<Diagnostic> diagnostics,
+        string id
+    ) => [.. diagnostics.Where(diagnostic => diagnostic.Id == id && diagnostic.IsSuppressed)];
 
     /// <summary>nullable を有効にした compilation の構築</summary>
     /// <param name="name">assembly 名の接頭辞</param>
     /// <param name="sources">C# source</param>
     /// <param name="references">追加で参照する assembly</param>
     /// <returns>構築した compilation</returns>
-    private static CSharpCompilation Compilation(string name, string[] sources, MetadataReference[] references)
+    private static CSharpCompilation Compilation(
+        string name,
+        string[] sources,
+        MetadataReference[] references
+    )
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
         return CSharpCompilation.Create(
             $"{name}-{Guid.NewGuid():N}",
             [.. sources.Select(source => CSharpSyntaxTree.ParseText(source, parseOptions))],
             CompilationReferences.Platform.AddRange(references),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
     }
 }

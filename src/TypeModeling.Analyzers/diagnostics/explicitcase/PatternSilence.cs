@@ -15,35 +15,58 @@ internal static class PatternSilence
     /// <param name="part">pattern が当たる位置の一段下の部分値の節</param>
     /// <param name="conversions">型の重なりを判定する変換</param>
     /// <returns>部分値を明示する場合と到達しない場合を Never とする受理の度合い</returns>
-    internal static Acceptance Toward(IPatternOperation pattern, PositionNode part, TypeConversions conversions) => pattern switch
-    {
-        IDiscardPatternOperation => Acceptance.Always,
-        IConstantPatternOperation => Acceptance.Never,
-        IDeclarationPatternOperation declaration => Reach(declaration.MatchedType, part, conversions),
-        ITypePatternOperation type => Reach(type.MatchedType, part, conversions),
-        IRecursivePatternOperation recursive =>
-            Writes(recursive, part, conversions) ? Acceptance.Never : Reach(recursive.MatchedType, part, conversions),
-        INegatedPatternOperation negated =>
-            Writes(negated.Pattern, part, conversions) ? Acceptance.Never : Not(Toward(negated.Pattern, part, conversions)),
-        IBinaryPatternOperation { OperatorKind: BinaryOperatorKind.Or } binary =>
-            Or(Toward(binary.LeftPattern, part, conversions), Toward(binary.RightPattern, part, conversions)),
-        IBinaryPatternOperation binary =>
-            And(Toward(binary.LeftPattern, part, conversions), Toward(binary.RightPattern, part, conversions)),
-        _ => Acceptance.Maybe,
-    };
+    internal static Acceptance Toward(
+        IPatternOperation pattern,
+        PositionNode part,
+        TypeConversions conversions
+    ) =>
+        pattern switch
+        {
+            IDiscardPatternOperation => Acceptance.Always,
+            IConstantPatternOperation => Acceptance.Never,
+            IDeclarationPatternOperation declaration => Reach(
+                declaration.MatchedType,
+                part,
+                conversions
+            ),
+            ITypePatternOperation type => Reach(type.MatchedType, part, conversions),
+            IRecursivePatternOperation recursive => Writes(recursive, part, conversions)
+                ? Acceptance.Never
+                : Reach(recursive.MatchedType, part, conversions),
+            INegatedPatternOperation negated => Writes(negated.Pattern, part, conversions)
+                ? Acceptance.Never
+                : Not(Toward(negated.Pattern, part, conversions)),
+            IBinaryPatternOperation { OperatorKind: BinaryOperatorKind.Or } binary => Or(
+                Toward(binary.LeftPattern, part, conversions),
+                Toward(binary.RightPattern, part, conversions)
+            ),
+            IBinaryPatternOperation binary => And(
+                Toward(binary.LeftPattern, part, conversions),
+                Toward(binary.RightPattern, part, conversions)
+            ),
+            _ => Acceptance.Maybe,
+        };
 
     /// <summary>pattern が部分値を部分 pattern で書くかの判定</summary>
     /// <param name="pattern">判定する pattern</param>
     /// <param name="part">pattern が当たる位置の一段下の部分値の節</param>
     /// <param name="conversions">型の重なりを判定する変換</param>
     /// <returns>論理 pattern の内部に同じ値を取り出す段があれば true</returns>
-    private static bool Writes(IPatternOperation pattern, PositionNode part, TypeConversions conversions) => pattern switch
-    {
-        IBinaryPatternOperation binary => Writes(binary.LeftPattern, part, conversions) || Writes(binary.RightPattern, part, conversions),
-        INegatedPatternOperation negated => Writes(negated.Pattern, part, conversions),
-        IRecursivePatternOperation recursive => PositionStep.Written(recursive).Any(step => step.Overlaps(part.Step, conversions)),
-        _ => false,
-    };
+    private static bool Writes(
+        IPatternOperation pattern,
+        PositionNode part,
+        TypeConversions conversions
+    ) =>
+        pattern switch
+        {
+            IBinaryPatternOperation binary => Writes(binary.LeftPattern, part, conversions)
+                || Writes(binary.RightPattern, part, conversions),
+            INegatedPatternOperation negated => Writes(negated.Pattern, part, conversions),
+            IRecursivePatternOperation recursive => PositionStep
+                .Written(recursive)
+                .Any(step => step.Overlaps(part.Step, conversions)),
+            _ => false,
+        };
 
     /// <summary>型の判定による部分値への到達範囲</summary>
     /// <param name="matched">明示された判定対象の型か null</param>
@@ -54,7 +77,11 @@ internal static class PatternSilence
     /// 要素名に依存しない組の型の到達判定
     /// 同じ値のまま変換できる型だけを到達しうる型とする判定
     /// </remarks>
-    private static Acceptance Reach(ITypeSymbol? matched, PositionNode part, TypeConversions conversions)
+    private static Acceptance Reach(
+        ITypeSymbol? matched,
+        PositionNode part,
+        TypeConversions conversions
+    )
     {
         if (TypeLineage.WithoutNullable(matched) is not { } tested)
             return Acceptance.Always;

@@ -40,17 +40,21 @@ public sealed class ExplicitCaseMemberOriginTests
     [Test]
     public async Task A_hidden_member_is_not_merged_with_the_member_it_hides()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Memo memo) => memo switch
+                internal static class Handler
                 {
-                    Reminder { State: PaymentState.Pending } => 1,
-                    { State: var any } => any.Label.Length,
-                };
-            }
-            """);
+                    internal static int Describe(Memo memo) => memo switch
+                    {
+                        Reminder { State: PaymentState.Pending } => 1,
+                        { State: var any } => any.Label.Length,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["{ State: var any }"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -60,18 +64,22 @@ public sealed class ExplicitCaseMemberOriginTests
     [Test]
     public async Task An_overriding_member_and_the_member_it_overrides_are_one_position()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Slip slip) => slip switch
+                internal static class Handler
                 {
-                    Cheque { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int Describe(Slip slip) => slip switch
+                    {
+                        Cheque { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -81,18 +89,22 @@ public sealed class ExplicitCaseMemberOriginTests
     [Test]
     public async Task A_derived_record_slot_and_the_inherited_property_are_one_position()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Account account) => account switch
+                internal static class Handler
                 {
-                    Savings(PaymentState.Pending, _) => 1,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int Describe(Account account) => account switch
+                    {
+                        Savings(PaymentState.Pending, _) => 1,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

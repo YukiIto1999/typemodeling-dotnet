@@ -24,47 +24,51 @@ public sealed class ExplicitCaseOpenDefaultTests
     [Test]
     public async Task A_default_label_is_rejected_where_another_case_branched_on_the_payload()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Default(Receipt receipt)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (receipt)
+                    internal static int Default(Receipt receipt)
                     {
-                        case { State: PaymentState.Pending }: result = 1; break;
-                        default: result = 2; break;
+                        var result = 0;
+                        switch (receipt)
+                        {
+                            case { State: PaymentState.Pending }: result = 1; break;
+                            default: result = 2; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int Bound(Receipt receipt)
-                {
-                    var result = 0;
-                    switch (receipt)
+                    internal static int Bound(Receipt receipt)
                     {
-                        case { State: PaymentState.Pending }: result = 1; break;
-                        case var rest: result = rest.Count; break;
+                        var result = 0;
+                        switch (receipt)
+                        {
+                            case { State: PaymentState.Pending }: result = 1; break;
+                            case var rest: result = rest.Count; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int Untouched(Receipt receipt)
-                {
-                    var result = 0;
-                    switch (receipt)
+                    internal static int Untouched(Receipt receipt)
                     {
-                        case { Count: 0 }: result = 1; break;
-                        default: result = 2; break;
-                    }
+                        var result = 0;
+                        switch (receipt)
+                        {
+                            case { Count: 0 }: result = 1; break;
+                            default: result = 2; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "var rest"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -75,26 +79,32 @@ public sealed class ExplicitCaseOpenDefaultTests
     [Test]
     public async Task A_default_label_identifies_each_distinct_hidden_family_once()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Parcel parcel)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (parcel)
+                    internal static int Describe(Parcel parcel)
                     {
-                        case { First: PaymentState.Pending, Second: PaymentState.Pending, Mode: Delivery.Pending }: result = 1; break;
-                        default: result = 2; break;
-                    }
+                        var result = 0;
+                        switch (parcel)
+                        {
+                            case { First: PaymentState.Pending, Second: PaymentState.Pending, Mode: Delivery.Pending }: result = 1; break;
+                            default: result = 2; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "default:"]);
-        await Assert.That(ReportedMessages(diagnostics)).IsEquivalentTo(MessagesFor(diagnostics, "PaymentState", "Delivery"));
+        await Assert
+            .That(ReportedMessages(diagnostics))
+            .IsEquivalentTo(MessagesFor(diagnostics, "PaymentState", "Delivery"));
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -103,7 +113,8 @@ public sealed class ExplicitCaseOpenDefaultTests
     [Test]
     public async Task A_default_label_reports_every_activated_level_of_a_closed_hierarchy()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             namespace Probe;
@@ -136,7 +147,8 @@ public sealed class ExplicitCaseOpenDefaultTests
                     }
                 }
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "default:"]);
         await Assert.That(ReportedMessages(diagnostics).Distinct().Count()).IsEqualTo(2);

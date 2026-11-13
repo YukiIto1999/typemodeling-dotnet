@@ -12,25 +12,28 @@ public sealed class ExplicitCaseFailClosedTests
     [Test]
     public async Task A_branched_position_beneath_not_cannot_be_verified_and_is_rejected()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            public sealed record Holder(PaymentState State);
+                public sealed record Holder(PaymentState State);
 
-            internal static class Handler
-            {
-                internal static int Negated(Holder holder) => holder switch
+                internal static class Handler
                 {
-                    not Holder(PaymentState.Pending) => 1,
-                    Holder(PaymentState.Pending) => 2,
-                };
+                    internal static int Negated(Holder holder) => holder switch
+                    {
+                        not Holder(PaymentState.Pending) => 1,
+                        Holder(PaymentState.Pending) => 2,
+                    };
 
-                internal static int Untouched(Holder holder, int number) => (holder, number) switch
-                {
-                    (not Holder(_), 1) => 1,
-                    _ => 2,
-                };
-            }
-            """);
+                    internal static int Untouched(Holder holder, int number) => (holder, number) switch
+                    {
+                        (not Holder(_), 1) => 1,
+                        _ => 2,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["PaymentState.Pending"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -40,34 +43,44 @@ public sealed class ExplicitCaseFailClosedTests
     [Test]
     public async Task A_branched_list_element_cannot_be_verified_and_is_rejected()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            internal static class Handler
-            {
-                internal static int Items(PaymentState[] items) => items switch
+                internal static class Handler
                 {
-                    [PaymentState.Pending, ..] => 1,
-                    [var first, ..] => first.Label.Length,
-                    _ => 0,
-                };
+                    internal static int Items(PaymentState[] items) => items switch
+                    {
+                        [PaymentState.Pending, ..] => 1,
+                        [var first, ..] => first.Label.Length,
+                        _ => 0,
+                    };
 
-                internal static int Numbers(int[] items) => items switch
-                {
-                    [1, ..] => 1,
-                    [var first, ..] => first,
-                    _ => 0,
-                };
+                    internal static int Numbers(int[] items) => items switch
+                    {
+                        [1, ..] => 1,
+                        [var first, ..] => first,
+                        _ => 0,
+                    };
 
-                internal static int Slices(PaymentState[] items) => items switch
-                {
-                    [.. [PaymentState.Pending]] => 1,
-                    [.. [var only]] => only.Label.Length,
-                    _ => 0,
-                };
-            }
-            """);
+                    internal static int Slices(PaymentState[] items) => items switch
+                    {
+                        [.. [PaymentState.Pending]] => 1,
+                        [.. [var only]] => only.Label.Length,
+                        _ => 0,
+                    };
+                }
+                """
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["PaymentState.Pending", "var first", "PaymentState.Pending", "var only"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo([
+                "PaymentState.Pending",
+                "var first",
+                "PaymentState.Pending",
+                "var only",
+            ]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -75,7 +88,8 @@ public sealed class ExplicitCaseFailClosedTests
     [Test]
     public async Task A_list_pattern_on_a_closed_position_is_rejected()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             namespace Probe;
@@ -97,7 +111,8 @@ public sealed class ExplicitCaseFailClosedTests
                     [..] => 1,
                 };
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["[..]"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

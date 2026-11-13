@@ -14,29 +14,33 @@ public sealed class ExplicitCaseDefaultFamilyTests
     [Test]
     public async Task A_tuple_default_identifies_every_hidden_family_without_repeating_the_same_family()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            [Closed]
-            public enum Delivery { Pending, Complete }
+                [Closed]
+                public enum Delivery { Pending, Complete }
 
-            internal static class Handler
-            {
-                internal static int Describe(PaymentState first, PaymentState second, Delivery delivery)
+                internal static class Handler
                 {
-                    switch ((first, (second, delivery)))
+                    internal static int Describe(PaymentState first, PaymentState second, Delivery delivery)
                     {
-                        default: return 0;
+                        switch ((first, (second, delivery)))
+                        {
+                            default: return 0;
+                        }
                     }
                 }
-            }
-            """);
+                """
+        );
         var reports = diagnostics.Where(diagnostic => diagnostic.Id == Id).ToArray();
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "default:"]);
         var format = reports[0].Descriptor.MessageFormat.ToString(CultureInfo.InvariantCulture);
         var expectedPayment = string.Format(CultureInfo.InvariantCulture, format, "PaymentState");
         var expectedDelivery = string.Format(CultureInfo.InvariantCulture, format, "Delivery");
-        await Assert.That(reports.Select(diagnostic => diagnostic.GetMessage(CultureInfo.InvariantCulture)))
+        await Assert
+            .That(reports.Select(diagnostic => diagnostic.GetMessage(CultureInfo.InvariantCulture)))
             .IsEquivalentTo([expectedPayment, expectedDelivery]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }

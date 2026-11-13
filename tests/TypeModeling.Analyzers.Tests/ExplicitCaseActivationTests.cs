@@ -30,20 +30,27 @@ public sealed class ExplicitCaseActivationTests
     [Arguments("not PaymentState.Pending", true)]
     [Arguments("PaymentState.Pending pending", false)]
     [Arguments("PaymentState.Settled { Refunded: true }", false)]
-    public async Task Naming_a_payload_case_protects_that_position(string pattern, bool acceptsFuture)
+    public async Task Naming_a_payload_case_protects_that_position(
+        string pattern,
+        bool acceptsFuture
+    )
     {
-        var diagnostics = await RunClosed(Payment() + OutcomeDeclaration + $$"""
+        var diagnostics = await RunClosed(
+            Payment()
+                + OutcomeDeclaration
+                + $$"""
 
-            internal static class Handler
-            {
-                internal static int Describe(Outcome outcome) => outcome switch
+                internal static class Handler
                 {
-                    Outcome.Done({{pattern}}) => 1,
-                    Outcome.Done(var other) => other.Label.Length,
-                    Outcome.Skipped => 0,
-                };
-            }
-            """);
+                    internal static int Describe(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done({{pattern}}) => 1,
+                        Outcome.Done(var other) => other.Label.Length,
+                        Outcome.Skipped => 0,
+                    };
+                }
+                """
+        );
         string[] flagged = acceptsFuture ? [pattern, "var other"] : ["var other"];
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(flagged);
@@ -55,7 +62,8 @@ public sealed class ExplicitCaseActivationTests
     [Test]
     public async Task Naming_an_enum_payload_member_protects_that_position()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             namespace Probe;
@@ -80,7 +88,8 @@ public sealed class ExplicitCaseActivationTests
                     Outcome.Skipped => 0,
                 };
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["var other"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -91,17 +100,21 @@ public sealed class ExplicitCaseActivationTests
     [Test]
     public async Task An_object_payload_binder_does_not_activate_protection()
     {
-        var diagnostics = await RunClosed(Payment() + OutcomeDeclaration + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + OutcomeDeclaration
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Outcome outcome) => outcome switch
+                internal static class Handler
                 {
-                    Outcome.Done(object state) => state.GetHashCode(),
-                    Outcome.Skipped => 0,
-                };
-            }
-            """);
+                    internal static int Describe(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done(object state) => state.GetHashCode(),
+                        Outcome.Skipped => 0,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

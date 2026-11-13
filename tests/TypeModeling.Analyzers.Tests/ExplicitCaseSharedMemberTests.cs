@@ -25,25 +25,29 @@ public sealed class ExplicitCaseSharedMemberTests
     [Test]
     public async Task A_member_written_through_a_derived_and_a_base_type_is_one_position_in_either_order()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int DerivedFirst(Document document) => document switch
+                internal static class Handler
                 {
-                    Letter { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
+                    internal static int DerivedFirst(Document document) => document switch
+                    {
+                        Letter { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
 
-                internal static int BaseFirst(Document document) => document switch
-                {
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    Letter { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int BaseFirst(Document document) => document switch
+                    {
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        Letter { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -53,25 +57,29 @@ public sealed class ExplicitCaseSharedMemberTests
     [Test]
     public async Task A_catch_all_through_a_base_type_is_rejected_where_a_derived_type_names_the_cases()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(Document document) => document switch
+                internal static class Handler
                 {
-                    Letter { State: PaymentState.Pending } => 1,
-                    { State: var any } => any.Label.Length,
-                };
+                    internal static int Describe(Document document) => document switch
+                    {
+                        Letter { State: PaymentState.Pending } => 1,
+                        { State: var any } => any.Label.Length,
+                    };
 
-                internal static int Guarded(Document document, bool flag) => document switch
-                {
-                    Letter { State: PaymentState.Pending } => 1,
-                    { State: var any } when flag => any.Label.Length,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int Guarded(Document document, bool flag) => document switch
+                    {
+                        Letter { State: PaymentState.Pending } => 1,
+                        { State: var any } when flag => any.Label.Length,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["var any"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -81,25 +89,29 @@ public sealed class ExplicitCaseSharedMemberTests
     [Test]
     public async Task A_member_written_through_unrelated_derived_types_stays_two_positions()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int NamedThenBound(Document document) => document switch
+                internal static class Handler
                 {
-                    Letter { State: PaymentState.Pending } => 1,
-                    Letter { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    Crate { State: var any } => any.Label.Length,
-                };
+                    internal static int NamedThenBound(Document document) => document switch
+                    {
+                        Letter { State: PaymentState.Pending } => 1,
+                        Letter { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        Crate { State: var any } => any.Label.Length,
+                    };
 
-                internal static int BoundThenNamed(Document document) => document switch
-                {
-                    Crate { State: PaymentState.Pending } => 1,
-                    Letter { State: var any } => any.Label.Length,
-                    Crate { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                };
-            }
-            """);
+                    internal static int BoundThenNamed(Document document) => document switch
+                    {
+                        Crate { State: PaymentState.Pending } => 1,
+                        Letter { State: var any } => any.Label.Length,
+                        Crate { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

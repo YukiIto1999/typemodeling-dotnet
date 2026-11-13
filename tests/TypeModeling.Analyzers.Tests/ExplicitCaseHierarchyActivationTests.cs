@@ -13,7 +13,8 @@ public sealed class ExplicitCaseHierarchyActivationTests
     [Test]
     public async Task Naming_a_subtype_of_a_closed_union_case_protects_its_family()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             namespace System.Runtime.CompilerServices
             {
                 [System.AttributeUsage(System.AttributeTargets.Struct)]
@@ -48,7 +49,8 @@ public sealed class ExplicitCaseHierarchyActivationTests
                     };
                 }
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["PaymentState"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -59,7 +61,8 @@ public sealed class ExplicitCaseHierarchyActivationTests
     [Test]
     public async Task Naming_an_open_branch_subtype_does_not_close_that_branch()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             namespace Probe;
@@ -84,7 +87,8 @@ public sealed class ExplicitCaseHierarchyActivationTests
                     Shape.Circle => 3,
                 };
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

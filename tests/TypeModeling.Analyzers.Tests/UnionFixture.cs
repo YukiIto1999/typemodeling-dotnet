@@ -16,7 +16,10 @@ internal static class UnionFixture
     /// <param name="source">検査対象の C# source</param>
     /// <param name="languageVersion">検査対象の言語版</param>
     /// <returns>compiler と analyzer の全ての診断、抑止された診断を含む</returns>
-    internal static async Task<ImmutableArray<Diagnostic>> Run(string source, LanguageVersion languageVersion = LanguageVersion.CSharp14)
+    internal static async Task<ImmutableArray<Diagnostic>> Run(
+        string source,
+        LanguageVersion languageVersion = LanguageVersion.CSharp14
+    )
     {
         var compilation = Generate(source, languageVersion);
         var options = new CompilationWithAnalyzersOptions(
@@ -24,10 +27,12 @@ internal static class UnionFixture
             onAnalyzerException: null,
             concurrentAnalysis: false,
             logAnalyzerExecutionTime: false,
-            reportSuppressedDiagnostics: true);
+            reportSuppressedDiagnostics: true
+        );
         var withAnalyzers = compilation.WithAnalyzers(
             [new ExhaustivenessSuppressor(), new UnionTypeAnalyzer(), new UnreachableArmAnalyzer()],
-            options);
+            options
+        );
 
         return await withAnalyzers.GetAllDiagnosticsAsync();
     }
@@ -36,9 +41,14 @@ internal static class UnionFixture
     /// <param name="source">検査対象の C# source</param>
     /// <param name="languageVersion">検査対象の言語版</param>
     /// <returns>generator が足した source の連結</returns>
-    internal static string GeneratedSource(string source, LanguageVersion languageVersion = LanguageVersion.CSharp14)
+    internal static string GeneratedSource(
+        string source,
+        LanguageVersion languageVersion = LanguageVersion.CSharp14
+    )
     {
-        var generated = Generate(source, languageVersion).SyntaxTrees.Skip(1).Select(tree => tree.ToString());
+        var generated = Generate(source, languageVersion)
+            .SyntaxTrees.Skip(1)
+            .Select(tree => tree.ToString());
         return string.Join(Environment.NewLine, generated);
     }
 
@@ -46,7 +56,9 @@ internal static class UnionFixture
     /// <param name="source">検査対象の C# source</param>
     /// <returns>generator が足した source の file 名</returns>
     internal static IEnumerable<string> GeneratedFileNames(string source) =>
-        Generate(source, LanguageVersion.CSharp14).SyntaxTrees.Skip(1).Select(tree => Path.GetFileName(tree.FilePath));
+        Generate(source, LanguageVersion.CSharp14)
+            .SyntaxTrees.Skip(1)
+            .Select(tree => Path.GetFileName(tree.FilePath));
 
     /// <summary>エラーの重大度の診断</summary>
     /// <param name="diagnostics">検査結果の診断</param>
@@ -65,7 +77,11 @@ internal static class UnionFixture
             $"union-probe-{Guid.NewGuid():N}",
             [CSharpSyntaxTree.ParseText(source, parseOptions)],
             CompilationReferences.Platform,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
         CSharpGeneratorDriver
             .Create([new UnionGenerator().AsSourceGenerator()], parseOptions: parseOptions)
             .RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _);

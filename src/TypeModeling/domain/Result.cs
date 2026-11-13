@@ -36,16 +36,12 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <summary>成功の case による構築</summary>
     /// <param name="value">成功の case</param>
     public Result(Succeeded<TValue> value)
-        : this(SucceededTag, value.Value, default!)
-    {
-    }
+        : this(SucceededTag, value.Value, default!) { }
 
     /// <summary>失敗の case による構築</summary>
     /// <param name="value">失敗の case</param>
     public Result(Failed<TFailure> value)
-        : this(FailedTag, default!, value.Failure)
-    {
-    }
+        : this(FailedTag, default!, value.Failure) { }
 
     /// <summary>tag と、tag が示す case の値による構築</summary>
     /// <param name="tag">持つ case の tag</param>
@@ -116,7 +112,10 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <param name="onFailed">失敗の値からの変換</param>
     /// <returns>どちらかの変換の結果</returns>
     /// <exception cref="InvalidOperationException">未初期化の結果</exception>
-    public TResult Match<TResult>(Func<TValue, TResult> onSucceeded, Func<TFailure, TResult> onFailed)
+    public TResult Match<TResult>(
+        Func<TValue, TResult> onSucceeded,
+        Func<TFailure, TResult> onFailed
+    )
     {
         EnsureInitialized();
         return _tag == SucceededTag ? onSucceeded(_value) : onFailed(_failure);
@@ -140,9 +139,12 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     {
         EnsureInitialized();
         other.EnsureInitialized();
-        return _tag == other._tag && (_tag == SucceededTag
-            ? EqualityComparer<TValue>.Default.Equals(_value, other._value)
-            : EqualityComparer<TFailure>.Default.Equals(_failure, other._failure));
+        return _tag == other._tag
+            && (
+                _tag == SucceededTag
+                    ? EqualityComparer<TValue>.Default.Equals(_value, other._value)
+                    : EqualityComparer<TFailure>.Default.Equals(_failure, other._failure)
+            );
     }
 
     /// <summary>同じ case と同じ値を持つ Result かの判定</summary>
@@ -182,14 +184,16 @@ public readonly struct Result<TValue, TFailure> : IUnion, IEquatable<Result<TVal
     /// <param name="right">右辺</param>
     /// <returns>同じ case と値なら true</returns>
     /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
-    public static bool operator ==(Result<TValue, TFailure> left, Result<TValue, TFailure> right) => left.Equals(right);
+    public static bool operator ==(Result<TValue, TFailure> left, Result<TValue, TFailure> right) =>
+        left.Equals(right);
 
     /// <summary>違う case か違う値を持つかの非等価演算</summary>
     /// <param name="left">左辺</param>
     /// <param name="right">右辺</param>
     /// <returns>違う case か値なら true</returns>
     /// <exception cref="InvalidOperationException">比較対象に含まれる未初期化の結果</exception>
-    public static bool operator !=(Result<TValue, TFailure> left, Result<TValue, TFailure> right) => !left.Equals(right);
+    public static bool operator !=(Result<TValue, TFailure> left, Result<TValue, TFailure> right) =>
+        !left.Equals(right);
 
     /// <summary>未初期化の観測を欠陥として閉じる確認</summary>
     /// <exception cref="InvalidOperationException">未初期化の Result を観測した場合</exception>

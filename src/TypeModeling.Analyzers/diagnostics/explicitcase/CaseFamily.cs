@@ -27,7 +27,11 @@ internal sealed class CaseFamily
     /// <param name="root">この集まりを表す閉じた型か union 型</param>
     /// <param name="inputType">pattern が当たる位置の型</param>
     /// <param name="unionCases">union 型の case 型。閉じた型なら未設定</param>
-    private CaseFamily(INamedTypeSymbol root, ITypeSymbol inputType, ImmutableArray<ITypeSymbol> unionCases)
+    private CaseFamily(
+        INamedTypeSymbol root,
+        ITypeSymbol inputType,
+        ImmutableArray<ITypeSymbol> unionCases
+    )
     {
         _root = root;
         _inputType = inputType;
@@ -44,7 +48,8 @@ internal sealed class CaseFamily
     /// <param name="closed">閉じた class か閉じた enum</param>
     /// <param name="inputType">pattern が当たる位置の型</param>
     /// <returns>後から足す派生か member の集まり</returns>
-    internal static CaseFamily OfClosedType(INamedTypeSymbol closed, ITypeSymbol inputType) => new(closed, inputType, default);
+    internal static CaseFamily OfClosedType(INamedTypeSymbol closed, ITypeSymbol inputType) =>
+        new(closed, inputType, default);
 
     /// <summary>union 型の集まり</summary>
     /// <param name="union">union 型</param>
@@ -57,20 +62,25 @@ internal sealed class CaseFamily
     /// <param name="pattern">判定する pattern</param>
     /// <returns>受け取る度合い</returns>
     /// <remarks>relational pattern と list pattern は、case を一つずつ挙げないので受け取りうるとみなす</remarks>
-    internal Acceptance Accepts(IPatternOperation pattern) => pattern switch
-    {
-        IDiscardPatternOperation => Acceptance.Always,
-        IDeclarationPatternOperation declaration => TypeTest(declaration.MatchedType),
-        ITypePatternOperation type => TypeTest(type.MatchedType),
-        IConstantPatternOperation => Acceptance.Never,
-        INegatedPatternOperation negated => Not(Accepts(negated.Pattern)),
-        IBinaryPatternOperation { OperatorKind: BinaryOperatorKind.Or } binary =>
-            Or(Accepts(binary.LeftPattern), Accepts(binary.RightPattern)),
-        IBinaryPatternOperation binary =>
-            And(Accepts(binary.LeftPattern), Accepts(binary.RightPattern)),
-        IRecursivePatternOperation recursive => Recursive(recursive),
-        _ => Acceptance.Maybe,
-    };
+    internal Acceptance Accepts(IPatternOperation pattern) =>
+        pattern switch
+        {
+            IDiscardPatternOperation => Acceptance.Always,
+            IDeclarationPatternOperation declaration => TypeTest(declaration.MatchedType),
+            ITypePatternOperation type => TypeTest(type.MatchedType),
+            IConstantPatternOperation => Acceptance.Never,
+            INegatedPatternOperation negated => Not(Accepts(negated.Pattern)),
+            IBinaryPatternOperation { OperatorKind: BinaryOperatorKind.Or } binary => Or(
+                Accepts(binary.LeftPattern),
+                Accepts(binary.RightPattern)
+            ),
+            IBinaryPatternOperation binary => And(
+                Accepts(binary.LeftPattern),
+                Accepts(binary.RightPattern)
+            ),
+            IRecursivePatternOperation recursive => Recursive(recursive),
+            _ => Acceptance.Maybe,
+        };
 
     /// <summary>recursive pattern が、後から足す case の値を受け取るかの判定</summary>
     /// <param name="recursive">判定する recursive pattern</param>
@@ -79,7 +89,8 @@ internal sealed class CaseFamily
     private Acceptance Recursive(IRecursivePatternOperation recursive)
     {
         var type = TypeTest(recursive.MatchedType);
-        var hasSubpatterns = !recursive.DeconstructionSubpatterns.IsEmpty || !recursive.PropertySubpatterns.IsEmpty;
+        var hasSubpatterns =
+            !recursive.DeconstructionSubpatterns.IsEmpty || !recursive.PropertySubpatterns.IsEmpty;
         return hasSubpatterns ? And(type, Acceptance.Maybe) : type;
     }
 
@@ -109,5 +120,7 @@ internal sealed class CaseFamily
     /// <param name="matched">pattern が調べる型</param>
     /// <returns>case 型かその派生なら Never、それ以外は Maybe</returns>
     private Acceptance UnionTypeTest(ITypeSymbol matched) =>
-        _unionCases.Any(caseType => TypeLineage.IsAtOrBelow(matched, caseType)) ? Acceptance.Never : Acceptance.Maybe;
+        _unionCases.Any(caseType => TypeLineage.IsAtOrBelow(matched, caseType))
+            ? Acceptance.Never
+            : Acceptance.Maybe;
 }

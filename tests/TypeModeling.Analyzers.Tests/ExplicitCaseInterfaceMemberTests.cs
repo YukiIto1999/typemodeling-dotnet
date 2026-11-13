@@ -43,25 +43,29 @@ public sealed class ExplicitCaseInterfaceMemberTests
     [Test]
     public async Task An_interface_property_and_its_implementation_in_a_sealed_type_are_one_position()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int ImplementationFirst(IStamped stamped) => stamped switch
+                internal static class Handler
                 {
-                    Stamp { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
+                    internal static int ImplementationFirst(IStamped stamped) => stamped switch
+                    {
+                        Stamp { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
 
-                internal static int InterfaceFirst(IStamped stamped) => stamped switch
-                {
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    Stamp { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int InterfaceFirst(IStamped stamped) => stamped switch
+                    {
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        Stamp { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -71,17 +75,21 @@ public sealed class ExplicitCaseInterfaceMemberTests
     [Test]
     public async Task An_explicit_implementation_is_not_merged_with_a_different_public_property()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(IStamped stamped) => stamped switch
+                internal static class Handler
                 {
-                    Disguised { State: PaymentState.Pending } => 1,
-                    { State: var any } => any.Label.Length,
-                };
-            }
-            """);
+                    internal static int Describe(IStamped stamped) => stamped switch
+                    {
+                        Disguised { State: PaymentState.Pending } => 1,
+                        { State: var any } => any.Label.Length,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["{ State: var any }"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -91,21 +99,30 @@ public sealed class ExplicitCaseInterfaceMemberTests
     [Test]
     public async Task An_implementation_that_a_derived_type_can_re_implement_is_not_merged()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Describe(IStamped stamped) => stamped switch
+                internal static class Handler
                 {
-                    Loose { State: PaymentState.Pending } => 1,
-                    { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    { State: PaymentState.Pending } => 3,
-                };
-            }
-            """);
+                    internal static int Describe(IStamped stamped) => stamped switch
+                    {
+                        Loose { State: PaymentState.Pending } => 1,
+                        { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        { State: PaymentState.Pending } => 3,
+                    };
+                }
+                """
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(
-            ["Loose { State: PaymentState.Pending }", "{ State: PaymentState.Settled or PaymentState.Failed }", "{ State: PaymentState.Pending }"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo([
+                "Loose { State: PaymentState.Pending }",
+                "{ State: PaymentState.Settled or PaymentState.Failed }",
+                "{ State: PaymentState.Pending }",
+            ]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 }

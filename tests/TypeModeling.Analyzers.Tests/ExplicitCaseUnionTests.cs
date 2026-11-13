@@ -34,20 +34,26 @@ public sealed class ExplicitCaseUnionTests
     [Arguments("var other => 0", "var other")]
     [Arguments("object other => 0", "object other")]
     [Arguments("Animal other => 0", "Animal other")]
-    public async Task Arms_that_accept_every_other_value_of_a_union_are_rejected(string arm, string flagged)
+    public async Task Arms_that_accept_every_other_value_of_a_union_are_rejected(
+        string arm,
+        string flagged
+    )
     {
-        var diagnostics = await RunUnion(Pets + $$"""
+        var diagnostics = await RunUnion(
+            Pets
+                + $$"""
 
-            internal static class Use
-            {
-                internal static int Describe(Pet pet) => pet.Value switch
+                internal static class Use
                 {
-                    Cat => 1,
-                    Dog => 2,
-                    {{arm}},
-                };
-            }
-            """);
+                    internal static int Describe(Pet pet) => pet.Value switch
+                    {
+                        Cat => 1,
+                        Dog => 2,
+                        {{arm}},
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo([flagged]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -57,36 +63,39 @@ public sealed class ExplicitCaseUnionTests
     [Test]
     public async Task Case_types_are_accepted_alone_and_inside_a_tuple_of_values()
     {
-        var diagnostics = await RunUnion(Pets + """
+        var diagnostics = await RunUnion(
+            Pets
+                + """
 
-            internal static class Use
-            {
-                internal static int Single(Pet pet) => pet.Value switch
+                internal static class Use
                 {
-                    Cat cat => cat.Name.Length,
-                    Dog dog => dog.Name.Length,
-                };
-
-                internal static int Pair(Pet left, Pet right) => (left.Value, right.Value) switch
-                {
-                    (Cat, Cat) => 1,
-                    (Cat, Dog) => 2,
-                    (Dog, Cat or Dog) => 3,
-                };
-
-                internal static int Statement(Pet pet)
-                {
-                    var result = 0;
-                    switch (pet.Value)
+                    internal static int Single(Pet pet) => pet.Value switch
                     {
-                        case Cat: result = 1; break;
-                        case Dog: result = 2; break;
-                    }
+                        Cat cat => cat.Name.Length,
+                        Dog dog => dog.Name.Length,
+                    };
 
-                    return result;
+                    internal static int Pair(Pet left, Pet right) => (left.Value, right.Value) switch
+                    {
+                        (Cat, Cat) => 1,
+                        (Cat, Dog) => 2,
+                        (Dog, Cat or Dog) => 3,
+                    };
+
+                    internal static int Statement(Pet pet)
+                    {
+                        var result = 0;
+                        switch (pet.Value)
+                        {
+                            case Cat: result = 1; break;
+                            case Dog: result = 2; break;
+                        }
+
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -96,28 +105,31 @@ public sealed class ExplicitCaseUnionTests
     [Test]
     public async Task Every_union_value_of_a_tuple_input_and_a_default_label_are_protected()
     {
-        var diagnostics = await RunUnion(Pets + """
+        var diagnostics = await RunUnion(
+            Pets
+                + """
 
-            internal static class Use
-            {
-                internal static int Pair(Pet left, Pet right) => (left.Value, right.Value) switch
+                internal static class Use
                 {
-                    (Cat, _) => 1,
-                    (Dog, Cat or Dog) => 2,
-                };
-
-                internal static int Statement(Pet pet)
-                {
-                    var result = 0;
-                    switch (pet.Value)
+                    internal static int Pair(Pet left, Pet right) => (left.Value, right.Value) switch
                     {
-                        default: result = 1; break;
-                    }
+                        (Cat, _) => 1,
+                        (Dog, Cat or Dog) => 2,
+                    };
 
-                    return result;
+                    internal static int Statement(Pet pet)
+                    {
+                        var result = 0;
+                        switch (pet.Value)
+                        {
+                            default: result = 1; break;
+                        }
+
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "default:"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -127,19 +139,22 @@ public sealed class ExplicitCaseUnionTests
     [Test]
     public async Task A_broad_arm_over_a_tuple_with_a_union_value_is_rejected()
     {
-        var diagnostics = await RunUnion(Pets + """
+        var diagnostics = await RunUnion(
+            Pets
+                + """
 
-            internal static class Use
-            {
-                internal static int Discard(Pet pet, bool flag) => (pet.Value, flag) switch { _ => 0 };
-
-                internal static int Bound(Pet pet, bool flag) => (pet.Value, flag) switch
+                internal static class Use
                 {
-                    (Cat, _) => 1,
-                    var rest => rest.Item2 ? 2 : 3,
-                };
-            }
-            """);
+                    internal static int Discard(Pet pet, bool flag) => (pet.Value, flag) switch { _ => 0 };
+
+                    internal static int Bound(Pet pet, bool flag) => (pet.Value, flag) switch
+                    {
+                        (Cat, _) => 1,
+                        var rest => rest.Item2 ? 2 : 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "var rest"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

@@ -41,35 +41,39 @@ public sealed class ExplicitCaseVarianceReachTests
     [Test]
     public async Task A_variant_interface_that_a_sealed_scope_converts_to_is_rejected_where_it_hides_the_payload()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Covariance(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int Covariance(object value)
                     {
-                        case Covariant { State: PaymentState.Pending }: result = 1; break;
-                        case IOut<object>: result = 2; break;
+                        var result = 0;
+                        switch (value)
+                        {
+                            case Covariant { State: PaymentState.Pending }: result = 1; break;
+                            case IOut<object>: result = 2; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int Contravariance(object value)
-                {
-                    var result = 0;
-                    switch (value)
+                    internal static int Contravariance(object value)
                     {
-                        case Contravariant { State: PaymentState.Pending }: result = 1; break;
-                        case IIn<string>: result = 2; break;
-                    }
+                        var result = 0;
+                        switch (value)
+                        {
+                            case Contravariant { State: PaymentState.Pending }: result = 1; break;
+                            case IIn<string>: result = 2; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["IOut<object>", "IIn<string>"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -80,37 +84,41 @@ public sealed class ExplicitCaseVarianceReachTests
     [Test]
     public async Task A_variant_interface_that_only_a_boxing_or_numeric_conversion_reaches_is_accepted()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Covariance(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int Covariance(object value)
                     {
-                        case BoxedOut { State: PaymentState.Pending }: result = 1; break;
-                        case IOut<object>: result = 2; break;
-                        case IOut<long>: result = 3; break;
+                        var result = 0;
+                        switch (value)
+                        {
+                            case BoxedOut { State: PaymentState.Pending }: result = 1; break;
+                            case IOut<object>: result = 2; break;
+                            case IOut<long>: result = 3; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int Contravariance(object value)
-                {
-                    var result = 0;
-                    switch (value)
+                    internal static int Contravariance(object value)
                     {
-                        case BoxedIn { State: PaymentState.Pending }: result = 1; break;
-                        case IIn<object>: result = 2; break;
-                        case IIn<long>: result = 3; break;
-                    }
+                        var result = 0;
+                        switch (value)
+                        {
+                            case BoxedIn { State: PaymentState.Pending }: result = 1; break;
+                            case IIn<object>: result = 2; break;
+                            case IIn<long>: result = 3; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

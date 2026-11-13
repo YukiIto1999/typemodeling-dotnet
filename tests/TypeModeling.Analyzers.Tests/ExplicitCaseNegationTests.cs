@@ -13,7 +13,8 @@ public sealed class ExplicitCaseNegationTests
     [Test]
     public async Task Negated_deconstruction_can_accept_a_future_case_with_a_different_payload()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             [Closed]
@@ -31,7 +32,8 @@ public sealed class ExplicitCaseNegationTests
                     State.Ready => 2,
                 };
             }
-            """);
+            """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["not State(0)"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -45,19 +47,22 @@ public sealed class ExplicitCaseNegationTests
     [Arguments("not System.IEquatable<PaymentState>")]
     public async Task Negating_a_test_shared_by_every_case_only_accepts_null(string nullPattern)
     {
-        var diagnostics = await RunClosed(Payment() + $$"""
+        var diagnostics = await RunClosed(
+            Payment()
+                + $$"""
 
-            internal static class Handler
-            {
-                internal static int Describe(PaymentState? state) => state switch
+                internal static class Handler
                 {
-                    {{nullPattern}} => 0,
-                    PaymentState.Pending => 1,
-                    PaymentState.Settled => 2,
-                    PaymentState.Failed => 3,
-                };
-            }
-            """);
+                    internal static int Describe(PaymentState? state) => state switch
+                    {
+                        {{nullPattern}} => 0,
+                        PaymentState.Pending => 1,
+                        PaymentState.Settled => 2,
+                        PaymentState.Failed => 3,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

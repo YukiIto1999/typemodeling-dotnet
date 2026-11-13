@@ -12,7 +12,8 @@ public sealed class ExplicitCaseClosedClassTests
     private const string NewVariant = "public sealed record Refunded : PaymentState;";
 
     /// <summary>三つの派生を一つずつ挙げる arm</summary>
-    private const string ExplicitArms = "PaymentState.Pending => 1, PaymentState.Settled => 2, PaymentState.Failed => 3,";
+    private const string ExplicitArms =
+        "PaymentState.Pending => 1, PaymentState.Settled => 2, PaymentState.Failed => 3,";
 
     /// <summary>診断を設定しなければ C# の言語どおりに catch-all を許し、設定すれば同じ source を拒否すること</summary>
     [Test]
@@ -40,10 +41,16 @@ public sealed class ExplicitCaseClosedClassTests
     [Arguments("PaymentState { } => 0", "PaymentState { }")]
     [Arguments("{ Label: \"x\" } => 0", "{ Label: \"x\" }")]
     [Arguments("not PaymentState.Pending => 0", "not PaymentState.Pending")]
-    [Arguments("PaymentState and not PaymentState.Failed => 0", "PaymentState and not PaymentState.Failed")]
+    [Arguments(
+        "PaymentState and not PaymentState.Failed => 0",
+        "PaymentState and not PaymentState.Failed"
+    )]
     [Arguments("PaymentState.Settled or _ => 0", "PaymentState.Settled or _")]
     [Arguments("not { Label: \"x\" } => 0", "not { Label: \"x\" }")]
-    [Arguments("System.IEquatable<PaymentState> other => 0", "System.IEquatable<PaymentState> other")]
+    [Arguments(
+        "System.IEquatable<PaymentState> other => 0",
+        "System.IEquatable<PaymentState> other"
+    )]
     [Arguments("System.IDisposable other => 0", "System.IDisposable other")]
     public async Task Arms_that_accept_every_other_case_are_rejected(string arm, string flagged)
     {
@@ -57,55 +64,58 @@ public sealed class ExplicitCaseClosedClassTests
     [Test]
     public async Task Explicit_cases_and_finite_patterns_are_accepted()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            internal static class Handler
-            {
-                internal static int Types(PaymentState state) => state switch
+                internal static class Handler
                 {
-                    PaymentState.Pending => 1,
-                    PaymentState.Settled settled => 2,
-                    PaymentState.Failed => 3,
-                };
-
-                internal static int Alternatives(PaymentState state) => state switch
-                {
-                    PaymentState.Pending or PaymentState.Failed => 1,
-                    PaymentState.Settled => 2,
-                };
-
-                internal static int Payloads(PaymentState state) => state switch
-                {
-                    PaymentState.Pending and var pending => pending.Label.Length,
-                    PaymentState.Settled { Refunded: true } => 2,
-                    PaymentState.Settled(var refunded) => refunded ? 3 : 4,
-                    PaymentState.Failed and { Label: "Failed" } => 5,
-                    PaymentState.Failed(var reason) => reason.Length,
-                };
-
-                internal static int Optional(PaymentState? state) => state switch
-                {
-                    null => 0,
-                    PaymentState.Pending => 1,
-                    PaymentState.Settled => 2,
-                    PaymentState.Failed => 3,
-                };
-
-                internal static int Statement(PaymentState state)
-                {
-                    var result = 0;
-                    switch (state)
+                    internal static int Types(PaymentState state) => state switch
                     {
-                        case PaymentState.Pending: result = 1; break;
-                        case PaymentState.Settled settled when settled.Refunded: result = 2; break;
-                        case PaymentState.Settled: result = 3; break;
-                        case PaymentState.Failed: result = 4; break;
-                    }
+                        PaymentState.Pending => 1,
+                        PaymentState.Settled settled => 2,
+                        PaymentState.Failed => 3,
+                    };
 
-                    return result;
+                    internal static int Alternatives(PaymentState state) => state switch
+                    {
+                        PaymentState.Pending or PaymentState.Failed => 1,
+                        PaymentState.Settled => 2,
+                    };
+
+                    internal static int Payloads(PaymentState state) => state switch
+                    {
+                        PaymentState.Pending and var pending => pending.Label.Length,
+                        PaymentState.Settled { Refunded: true } => 2,
+                        PaymentState.Settled(var refunded) => refunded ? 3 : 4,
+                        PaymentState.Failed and { Label: "Failed" } => 5,
+                        PaymentState.Failed(var reason) => reason.Length,
+                    };
+
+                    internal static int Optional(PaymentState? state) => state switch
+                    {
+                        null => 0,
+                        PaymentState.Pending => 1,
+                        PaymentState.Settled => 2,
+                        PaymentState.Failed => 3,
+                    };
+
+                    internal static int Statement(PaymentState state)
+                    {
+                        var result = 0;
+                        switch (state)
+                        {
+                            case PaymentState.Pending: result = 1; break;
+                            case PaymentState.Settled settled when settled.Refunded: result = 2; break;
+                            case PaymentState.Settled: result = 3; break;
+                            case PaymentState.Failed: result = 4; break;
+                        }
+
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -133,34 +143,39 @@ public sealed class ExplicitCaseClosedClassTests
     [Test]
     public async Task The_switch_input_is_protected_even_when_no_arm_names_a_case()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            internal static class Handler
-            {
-                internal static int Plain(PaymentState state) => state switch { _ => 1 };
-
-                internal static int Bound(PaymentState state) => state switch { var current => current.Label.Length };
-
-                internal static int Pair(PaymentState state, bool flag) => (state, flag) switch
+                internal static class Handler
                 {
-                    (_, true) => 1,
-                    (_, false) => 2,
-                };
+                    internal static int Plain(PaymentState state) => state switch { _ => 1 };
 
-                internal static int Statement(PaymentState state)
-                {
-                    var result = 0;
-                    switch (state)
+                    internal static int Bound(PaymentState state) => state switch { var current => current.Label.Length };
+
+                    internal static int Pair(PaymentState state, bool flag) => (state, flag) switch
                     {
-                        default: result = 1; break;
+                        (_, true) => 1,
+                        (_, false) => 2,
+                    };
+
+                    internal static int Statement(PaymentState state)
+                    {
+                        var result = 0;
+                        switch (state)
+                        {
+                            default: result = 1; break;
+                        }
+
+                        return result;
                     }
-
-                    return result;
                 }
-            }
-            """);
+                """
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "var current", "_", "_", "default:"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo(["_", "var current", "_", "_", "default:"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -191,10 +206,16 @@ public sealed class ExplicitCaseClosedClassTests
         const string statementArms =
             "case PaymentState.Pending: result = 1; break; case PaymentState.Settled: result = 2; break; case PaymentState.Failed: result = 3; break;";
 
-        var guarded = await RunClosed(PaymentStatement(
-            "case PaymentState.Pending: result = 1; break; case PaymentState other when flag: result = 2; break;"));
-        var fallback = await RunClosed(PaymentStatement(
-            "case PaymentState.Pending: result = 1; break; default: result = 2; break;"));
+        var guarded = await RunClosed(
+            PaymentStatement(
+                "case PaymentState.Pending: result = 1; break; case PaymentState other when flag: result = 2; break;"
+            )
+        );
+        var fallback = await RunClosed(
+            PaymentStatement(
+                "case PaymentState.Pending: result = 1; break; default: result = 2; break;"
+            )
+        );
         var explicitAfter = await RunClosed(PaymentStatement(statementArms, NewVariant));
 
         await Assert.That(Flagged(guarded)).IsEquivalentTo(["PaymentState other"]);
