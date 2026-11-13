@@ -17,18 +17,31 @@ internal static class PositionCollector
     /// 閉じた型の値を絞る部分 pattern は、その位置の型を入力の型に持つので、絞った後の型は位置に数えない。
     /// not の内側だけに現れる位置は他の arm が調べないので、そこに存在しない値を足しても網羅の判定は変わらない。
     /// </remarks>
-    internal static ImmutableArray<PatternPosition> Collect(ISwitchExpressionOperation switchExpression, TypeText typeText)
+    internal static ImmutableArray<PatternPosition> Collect(
+        ISwitchExpressionOperation switchExpression,
+        TypeText typeText
+    )
     {
         var positions = new List<PatternPosition>
         {
-            new(PatternPath.Root, switchExpression.Value.Type, UnionOfValue(switchExpression.Value)),
+            new(
+                PatternPath.Root,
+                switchExpression.Value.Type,
+                UnionOfValue(switchExpression.Value)
+            ),
         };
         if (switchExpression.Value is ITupleOperation tuple)
         {
             for (var index = 0; index < tuple.Elements.Length; index++)
             {
                 var element = tuple.Elements[index];
-                positions.Add(new(PatternPath.Root.Element(null, index, tuple.Elements.Length), element.Type, UnionOfValue(element)));
+                positions.Add(
+                    new(
+                        PatternPath.Root.Element(null, index, tuple.Elements.Length),
+                        element.Type,
+                        UnionOfValue(element)
+                    )
+                );
             }
         }
 
@@ -39,7 +52,8 @@ internal static class PositionCollector
                 PatternPath.Root,
                 typeText,
                 intoOpaque: false,
-                visit => positions.Add(new PatternPosition(visit.Path, visit.Pattern.InputType)));
+                visit => positions.Add(new PatternPosition(visit.Path, visit.Pattern.InputType))
+            );
         }
 
         return [.. positions];
@@ -50,11 +64,16 @@ internal static class PositionCollector
     /// <returns>union 型か、その union member provider の Value の参照なら、その union 型。それ以外は null</returns>
     internal static INamedTypeSymbol? UnionOfValue(IOperation? operation)
     {
-        if (operation is not IPropertyReferenceOperation { Property: { ContainingType: { } owner } property })
+        if (
+            operation
+            is not IPropertyReferenceOperation { Property: { ContainingType: { } owner } property }
+        )
             return null;
 
         var union = UnionTypeSet.IsUnion(owner) ? owner : owner.ContainingType;
-        return UnionTypeSet.IsUnion(union) && SymbolEqualityComparer.Default.Equals(UnionTypeSet.ValueProperty(union), property)
+        return
+            UnionTypeSet.IsUnion(union)
+            && SymbolEqualityComparer.Default.Equals(UnionTypeSet.ValueProperty(union), property)
             ? union
             : null;
     }

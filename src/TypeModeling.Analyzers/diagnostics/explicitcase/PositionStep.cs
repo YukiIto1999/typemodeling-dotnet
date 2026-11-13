@@ -17,27 +17,39 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <param name="index">要素の位置</param>
     /// <param name="tuple">要素を持つ組の型</param>
     /// <returns>組の要素の段</returns>
-    internal static PositionStep TupleElement(int index, ITypeSymbol tuple) => new(null, index, tuple);
+    internal static PositionStep TupleElement(int index, ITypeSymbol tuple) =>
+        new(null, index, tuple);
 
     /// <summary>部分値を取り出す段を持つ pattern の特定</summary>
     /// <param name="pattern">部分値に当てた pattern の最上位</param>
     /// <returns>所有する pattern と段の組か arm の最上位を表す null</returns>
-    internal static (IPatternOperation Owner, PositionStep Step)? Of(IPatternOperation pattern) => pattern.Parent switch
-    {
-        IRecursivePatternOperation recursive =>
-            (recursive, Positional(recursive, recursive.DeconstructionSubpatterns.IndexOf(pattern))),
-        IPropertySubpatternOperation { Parent: IRecursivePatternOperation recursive } property
-            when Property(recursive, property) is { } step => (recursive, step),
-        IListPatternOperation list => (list, new PositionStep(list.InputType, list.Patterns.IndexOf(pattern), list.InputType)),
-        _ => null,
-    };
+    internal static (IPatternOperation Owner, PositionStep Step)? Of(IPatternOperation pattern) =>
+        pattern.Parent switch
+        {
+            IRecursivePatternOperation recursive => (
+                recursive,
+                Positional(recursive, recursive.DeconstructionSubpatterns.IndexOf(pattern))
+            ),
+            IPropertySubpatternOperation { Parent: IRecursivePatternOperation recursive } property
+                when Property(recursive, property) is { } step => (recursive, step),
+            IListPatternOperation list => (
+                list,
+                new PositionStep(list.InputType, list.Patterns.IndexOf(pattern), list.InputType)
+            ),
+            _ => null,
+        };
 
     /// <summary>recursive pattern が部分 pattern で書く全ての段</summary>
     /// <param name="recursive">調べる recursive pattern</param>
     /// <returns>明示された各部分値を取り出す段</returns>
     internal static IEnumerable<PositionStep> Written(IRecursivePatternOperation recursive) =>
-        recursive.DeconstructionSubpatterns.Select((_, index) => Positional(recursive, index))
-            .Concat(recursive.PropertySubpatterns.Select(property => Property(recursive, property)).OfType<PositionStep>());
+        recursive
+            .DeconstructionSubpatterns.Select((_, index) => Positional(recursive, index))
+            .Concat(
+                recursive
+                    .PropertySubpatterns.Select(property => Property(recursive, property))
+                    .OfType<PositionStep>()
+            );
 
     /// <summary>位置の木で同じ節になる段かの判定</summary>
     /// <param name="other">比べる段</param>
@@ -61,8 +73,11 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
         if (Provenance is null || other.Provenance is null)
             return Provenance is null && other.Provenance is null;
 
-        return (SymbolEqualityComparer.Default.Equals(Provenance, other.Provenance) || IsImplementedBy(other) || other.IsImplementedBy(this))
-            && MayShareValue(Scope, other.Scope, conversions);
+        return (
+                SymbolEqualityComparer.Default.Equals(Provenance, other.Provenance)
+                || IsImplementedBy(other)
+                || other.IsImplementedBy(this)
+            ) && MayShareValue(Scope, other.Scope, conversions);
     }
 
     /// <summary>interface member と確定した実装先の照合</summary>
@@ -71,10 +86,17 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <remarks>同名の public member とは別に識別する明示的な interface 実装</remarks>
     private bool IsImplementedBy(PositionStep concrete)
     {
-        if (Provenance is not { ContainingType.TypeKind: TypeKind.Interface } member || member is not (IPropertySymbol or IMethodSymbol))
+        if (
+            Provenance is not { ContainingType.TypeKind: TypeKind.Interface } member
+            || member is not (IPropertySymbol or IMethodSymbol)
+        )
             return false;
 
-        if (concrete.Provenance is not { } actual || concrete.Scope is not { } scope || !CannotBeReimplemented(scope))
+        if (
+            concrete.Provenance is not { } actual
+            || concrete.Scope is not { } scope
+            || !CannotBeReimplemented(scope)
+        )
             return false;
 
         return scope.FindImplementationForInterfaceMember(member) is { } implementation
@@ -91,7 +113,10 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <param name="recursive">property pattern を持つ recursive pattern</param>
     /// <param name="subpattern">一つの member に当てた部分 pattern</param>
     /// <returns>組の要素か member に対応する段か解決不能を表す null</returns>
-    private static PositionStep? Property(IRecursivePatternOperation recursive, IPropertySubpatternOperation subpattern)
+    private static PositionStep? Property(
+        IRecursivePatternOperation recursive,
+        IPropertySubpatternOperation subpattern
+    )
     {
         if (subpattern.Member is not IMemberReferenceOperation { Member: { } member })
             return null;
@@ -125,7 +150,10 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <remarks>要素名と ItemN を同一視する既定 field との対応</remarks>
     private static int? TupleElementIndex(ITypeSymbol scope, ISymbol member)
     {
-        if (scope is not INamedTypeSymbol { IsTupleType: true } tuple || member is not IFieldSymbol field)
+        if (
+            scope is not INamedTypeSymbol { IsTupleType: true } tuple
+            || member is not IFieldSymbol field
+        )
             return null;
 
         var elements = tuple.TupleElements;
@@ -144,27 +172,38 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <returns>同じ要素の既定 field に対応するなら true</returns>
     private static bool Denotes(IFieldSymbol element, IFieldSymbol field) =>
         SymbolEqualityComparer.Default.Equals(element, field)
-        || (element.CorrespondingTupleField is { } defaultField
-            && (SymbolEqualityComparer.Default.Equals(defaultField, field)
-                || SymbolEqualityComparer.Default.Equals(defaultField, field.CorrespondingTupleField)));
+        || (
+            element.CorrespondingTupleField is { } defaultField
+            && (
+                SymbolEqualityComparer.Default.Equals(defaultField, field)
+                || SymbolEqualityComparer.Default.Equals(
+                    defaultField,
+                    field.CorrespondingTupleField
+                )
+            )
+        );
 
     /// <summary>member が読む仮想 slot の出どころ</summary>
     /// <param name="member">property か Deconstruct か型</param>
     /// <returns>最初に宣言された仮想 slot か仮想 slot を持たない元の member</returns>
-    private static ISymbol Slot(ISymbol member) => member switch
-    {
-        IPropertySymbol { OverriddenProperty: { } overridden } => Slot(overridden),
-        IMethodSymbol { OverriddenMethod: { } overridden } => Slot(overridden),
-        _ => member,
-    };
+    private static ISymbol Slot(ISymbol member) =>
+        member switch
+        {
+            IPropertySymbol { OverriddenProperty: { } overridden } => Slot(overridden),
+            IMethodSymbol { OverriddenMethod: { } overridden } => Slot(overridden),
+            _ => member,
+        };
 
     /// <summary>二つの型が同じ値の型になりうるかの判定</summary>
     /// <param name="left">比べる型か入力位置を表す null</param>
     /// <param name="right">比べる型か入力位置を表す null</param>
     /// <param name="conversions">型の重なりを判定する変換</param>
     /// <returns>型を持たない位置か重なりうる型なら true</returns>
-    private static bool MayShareValue(ITypeSymbol? left, ITypeSymbol? right, TypeConversions conversions) =>
-        left is null || right is null || conversions.MayShare(left, right);
+    private static bool MayShareValue(
+        ITypeSymbol? left,
+        ITypeSymbol? right,
+        TypeConversions conversions
+    ) => left is null || right is null || conversions.MayShare(left, right);
 
     /// <summary>compiler が作った record の Deconstruct の引数が返す property</summary>
     /// <param name="deconstruct">呼び出す Deconstruct か未使用を表す null</param>
@@ -173,8 +212,15 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <remarks>自動生成と手書きを区別できない参照 assembly の Deconstruct の除外</remarks>
     private static IPropertySymbol? RecordProperty(ISymbol? deconstruct, int index)
     {
-        if (deconstruct is not IMethodSymbol { IsImplicitlyDeclared: true, ContainingType: { IsRecord: true } owner } method
-            || index >= method.Parameters.Length)
+        if (
+            deconstruct
+                is not IMethodSymbol
+                {
+                    IsImplicitlyDeclared: true,
+                    ContainingType: { IsRecord: true } owner
+                } method
+            || index >= method.Parameters.Length
+        )
         {
             return null;
         }
@@ -183,7 +229,10 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
         return Lineage(owner)
             .SelectMany(type => type.GetMembers(parameter.Name))
             .OfType<IPropertySymbol>()
-            .FirstOrDefault(property => !property.IsStatic && SymbolEqualityComparer.Default.Equals(property.Type, parameter.Type));
+            .FirstOrDefault(property =>
+                !property.IsStatic
+                && SymbolEqualityComparer.Default.Equals(property.Type, parameter.Type)
+            );
     }
 
     /// <summary>型とその基底 class</summary>

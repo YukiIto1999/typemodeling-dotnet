@@ -37,7 +37,12 @@ internal sealed class CasePosition
     /// <param name="root">位置の case を持つ閉じた型か union 型</param>
     /// <param name="isUnion">位置の case が union 型の case 型なら true</param>
     /// <param name="isScrutinee">switch の入力か組の要素の位置なら true</param>
-    private CasePosition(ITypeSymbol inputType, INamedTypeSymbol root, bool isUnion, bool isScrutinee)
+    private CasePosition(
+        ITypeSymbol inputType,
+        INamedTypeSymbol root,
+        bool isUnion,
+        bool isScrutinee
+    )
     {
         _inputType = inputType;
         _root = root;
@@ -65,13 +70,18 @@ internal sealed class CasePosition
     /// <param name="union">位置が union 型の Value なら、その union 型</param>
     /// <param name="isScrutinee">switch の入力か組の要素の位置なら true</param>
     /// <returns>閉じた class、閉じた enum、それらに制約された型引数、union 型の Value の位置。それ以外は null</returns>
-    internal static CasePosition? At(ITypeSymbol? inputType, INamedTypeSymbol? union, bool isScrutinee)
+    internal static CasePosition? At(
+        ITypeSymbol? inputType,
+        INamedTypeSymbol? union,
+        bool isScrutinee
+    )
     {
         // union 型の Value を参照する式は型を持つ
         if (union is not null)
             return new CasePosition(inputType!, union, true, isScrutinee);
 
-        return ClosedTypeSet.EffectiveClosedType(TypeLineage.WithoutNullable(inputType)) is { } closed
+        return
+            ClosedTypeSet.EffectiveClosedType(TypeLineage.WithoutNullable(inputType)) is { } closed
             ? new CasePosition(inputType!, closed, false, isScrutinee)
             : null;
     }
@@ -115,13 +125,19 @@ internal sealed class CasePosition
         var names = positions.SelectMany(position => position._tested).Where(IsCaseName).ToArray();
         var families = ImmutableArray.CreateBuilder<CaseFamily>();
         if (IsScrutinee || positions.Any(position => position.NamesCase))
-            families.Add(_isUnion ? CaseFamily.OfUnion(_root, _inputType) : CaseFamily.OfClosedType(_root, _inputType));
+            families.Add(
+                _isUnion
+                    ? CaseFamily.OfUnion(_root, _inputType)
+                    : CaseFamily.OfClosedType(_root, _inputType)
+            );
 
-        families.AddRange(names
-            .SelectMany(ClosedAncestors)
-            .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
-            .Where(closed => !TypeLineage.Same(closed, _root))
-            .Select(closed => CaseFamily.OfClosedType(closed, _inputType)));
+        families.AddRange(
+            names
+                .SelectMany(ClosedAncestors)
+                .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
+                .Where(closed => !TypeLineage.Same(closed, _root))
+                .Select(closed => CaseFamily.OfClosedType(closed, _inputType))
+        );
         return families.ToImmutable();
     }
 
@@ -129,19 +145,26 @@ internal sealed class CasePosition
     /// <param name="tested">arm が調べた型</param>
     /// <returns>位置の型そのものでなく、case の範囲の内側の型なら true</returns>
     private bool IsCaseName(ITypeSymbol tested) =>
-        Within(tested) && !TypeLineage.Same(tested, _inputType) && (_isUnion || !TypeLineage.Same(tested, _root));
+        Within(tested)
+        && !TypeLineage.Same(tested, _inputType)
+        && (_isUnion || !TypeLineage.Same(tested, _root));
 
     /// <summary>型が case の範囲の内側かの判定</summary>
     /// <param name="type">判定する型</param>
     /// <returns>case と同じ型か、その派生なら true</returns>
-    private bool Within(ITypeSymbol type) => _bounds.Any(bound => TypeLineage.IsAtOrBelow(type, bound));
+    private bool Within(ITypeSymbol type) =>
+        _bounds.Any(bound => TypeLineage.IsAtOrBelow(type, bound));
 
     /// <summary>case の範囲の内側にある、型の閉じた基底 class</summary>
     /// <param name="tested">arm が挙げた case の型</param>
     /// <returns>型から範囲の端まで辿った、閉じた基底 class</returns>
     private IEnumerable<INamedTypeSymbol> ClosedAncestors(ITypeSymbol tested)
     {
-        for (var ancestor = tested.BaseType; ancestor is not null && Within(ancestor); ancestor = ancestor.BaseType)
+        for (
+            var ancestor = tested.BaseType;
+            ancestor is not null && Within(ancestor);
+            ancestor = ancestor.BaseType
+        )
         {
             if (ClosedTypeSet.IsClosedClass(ancestor))
                 yield return ancestor;

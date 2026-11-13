@@ -29,7 +29,8 @@ public sealed class ExplicitCaseReferencedRecordTests
     [Test]
     public async Task A_referenced_record_is_accepted_when_one_form_names_every_case()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using Library;
 
             internal static class Handler
@@ -46,7 +47,10 @@ public sealed class ExplicitCaseReferencedRecordTests
                     { Light: Signal.Green } => 2,
                 };
             }
-            """, true, Library(LibrarySource));
+            """,
+            true,
+            Library(LibrarySource)
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -56,7 +60,8 @@ public sealed class ExplicitCaseReferencedRecordTests
     [Test]
     public async Task A_referenced_record_deconstruct_is_never_merged_with_its_property()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using Library;
 
             internal static class Handler
@@ -67,9 +72,14 @@ public sealed class ExplicitCaseReferencedRecordTests
                     { Light: Signal.Green } => 2,
                 };
             }
-            """, true, Library(LibrarySource));
+            """,
+            true,
+            Library(LibrarySource)
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["Lamp(Signal.Red, _)", "{ Light: Signal.Green }"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo(["Lamp(Signal.Red, _)", "{ Light: Signal.Green }"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -77,33 +87,38 @@ public sealed class ExplicitCaseReferencedRecordTests
     [Test]
     public async Task A_hand_written_deconstruct_marked_compiler_generated_is_never_merged_with_the_property()
     {
-        var diagnostics = await RunClosed(Payment() + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + """
 
-            internal sealed record Forged(PaymentState State)
-            {
-                public PaymentState Previous { get; init; } = new PaymentState.Pending();
-
-                [System.Runtime.CompilerServices.CompilerGenerated]
-                public void Deconstruct(out PaymentState state) => state = Previous;
-            }
-
-            internal static class Handler
-            {
-                internal static int PropertyOmitsSlot(Forged forged) => forged switch
+                internal sealed record Forged(PaymentState State)
                 {
-                    Forged(PaymentState.Pending) => 1,
-                    { State: var current } => current.Label.Length,
-                };
+                    public PaymentState Previous { get; init; } = new PaymentState.Pending();
 
-                internal static int SlotOmitsProperty(Forged forged) => forged switch
+                    [System.Runtime.CompilerServices.CompilerGenerated]
+                    public void Deconstruct(out PaymentState state) => state = Previous;
+                }
+
+                internal static class Handler
                 {
-                    { State: PaymentState.Pending } => 1,
-                    Forged(var shown) => shown.Label.Length,
-                };
-            }
-            """);
+                    internal static int PropertyOmitsSlot(Forged forged) => forged switch
+                    {
+                        Forged(PaymentState.Pending) => 1,
+                        { State: var current } => current.Label.Length,
+                    };
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["{ State: var current }", "Forged(var shown)"]);
+                    internal static int SlotOmitsProperty(Forged forged) => forged switch
+                    {
+                        { State: PaymentState.Pending } => 1,
+                        Forged(var shown) => shown.Label.Length,
+                    };
+                }
+                """
+        );
+
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo(["{ State: var current }", "Forged(var shown)"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 }

@@ -40,8 +40,13 @@ public sealed class AnalyzerRegistrationTests
             return $"{analyzer.GetType().Name} | {context.Concurrent} | {context.GeneratedCode}";
         });
 
-        await Assert.That(registrations).IsEquivalentTo(
-            analyzers.Select(analyzer => $"{analyzer.GetType().Name} | True | {GeneratedCodeAnalysisFlags.None}"));
+        await Assert
+            .That(registrations)
+            .IsEquivalentTo(
+                analyzers.Select(analyzer =>
+                    $"{analyzer.GetType().Name} | True | {GeneratedCodeAnalysisFlags.None}"
+                )
+            );
     }
 
     /// <summary>登録された設定だけを記録し、解析の action を捨てる context</summary>
@@ -57,10 +62,14 @@ public sealed class AnalyzerRegistrationTests
         public override void EnableConcurrentExecution() => Concurrent = true;
 
         /// <inheritdoc/>
-        public override void ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags analysisMode) => GeneratedCode = analysisMode;
+        public override void ConfigureGeneratedCodeAnalysis(
+            GeneratedCodeAnalysisFlags analysisMode
+        ) => GeneratedCode = analysisMode;
 
         /// <inheritdoc/>
-        public override void RegisterCompilationStartAction(Action<CompilationStartAnalysisContext> action)
+        public override void RegisterCompilationStartAction(
+            Action<CompilationStartAnalysisContext> action
+        )
         {
             // 解析の action は実行しないので記録しない
         }
@@ -72,19 +81,26 @@ public sealed class AnalyzerRegistrationTests
         }
 
         /// <inheritdoc/>
-        public override void RegisterSemanticModelAction(Action<SemanticModelAnalysisContext> action)
+        public override void RegisterSemanticModelAction(
+            Action<SemanticModelAnalysisContext> action
+        )
         {
             // 解析の action は実行しないので記録しない
         }
 
         /// <inheritdoc/>
-        public override void RegisterSymbolAction(Action<SymbolAnalysisContext> action, params ImmutableArray<SymbolKind> symbolKinds)
+        public override void RegisterSymbolAction(
+            Action<SymbolAnalysisContext> action,
+            params ImmutableArray<SymbolKind> symbolKinds
+        )
         {
             // 解析の action は実行しないので記録しない
         }
 
         /// <inheritdoc/>
-        public override void RegisterCodeBlockStartAction<TLanguageKindEnum>(Action<CodeBlockStartAnalysisContext<TLanguageKindEnum>> action)
+        public override void RegisterCodeBlockStartAction<TLanguageKindEnum>(
+            Action<CodeBlockStartAnalysisContext<TLanguageKindEnum>> action
+        )
         {
             // 解析の action は実行しないので記録しない
         }
@@ -104,13 +120,17 @@ public sealed class AnalyzerRegistrationTests
         /// <inheritdoc/>
         public override void RegisterSyntaxNodeAction<TLanguageKindEnum>(
             Action<SyntaxNodeAnalysisContext> action,
-            params ImmutableArray<TLanguageKindEnum> syntaxKinds)
+            params ImmutableArray<TLanguageKindEnum> syntaxKinds
+        )
         {
             // 解析の action は実行しないので記録しない
         }
 
         /// <inheritdoc/>
-        public override void RegisterOperationAction(Action<OperationAnalysisContext> action, params ImmutableArray<OperationKind> operationKinds)
+        public override void RegisterOperationAction(
+            Action<OperationAnalysisContext> action,
+            params ImmutableArray<OperationKind> operationKinds
+        )
         {
             // 解析の action は実行しないので記録しない
         }

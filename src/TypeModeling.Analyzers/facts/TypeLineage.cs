@@ -16,7 +16,9 @@ internal static class TypeLineage
             return true;
 
         if (ancestor.TypeKind == TypeKind.Interface)
-            return type.AllInterfaces.Any(implemented => SymbolEqualityComparer.Default.Equals(implemented, ancestor));
+            return type.AllInterfaces.Any(implemented =>
+                SymbolEqualityComparer.Default.Equals(implemented, ancestor)
+            );
 
         for (var baseType = type.BaseType; baseType is not null; baseType = baseType.BaseType)
         {
@@ -38,7 +40,11 @@ internal static class TypeLineage
     /// <param name="type">対象の型。型がなければ null</param>
     /// <returns>値型の Nullable なら包まれた型。それ以外は type そのもの</returns>
     internal static ITypeSymbol? WithoutNullable(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+        type
+            is INamedTypeSymbol
+            {
+                OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
+            } nullable
             ? nullable.TypeArguments[0]
             : type;
 }

@@ -51,9 +51,14 @@ internal sealed class CatchAllArms
         IOperation value,
         ImmutableArray<MatchArm> arms,
         TypeText typeText,
-        TypeConversions conversions)
+        TypeConversions conversions
+    )
     {
-        var scan = new CatchAllArms(typeText, conversions, new PositionNode(ScrutineePosition(value.Type, value), default, null));
+        var scan = new CatchAllArms(
+            typeText,
+            conversions,
+            new PositionNode(ScrutineePosition(value.Type, value), default, null)
+        );
         RegisterScrutinee(scan._root, value.Type, value);
         foreach (var arm in arms.Where(candidate => candidate.Pattern is not null))
             scan.Scan(arm);
@@ -73,7 +78,11 @@ internal sealed class CatchAllArms
     /// <param name="type">位置の型。型のない式なら null</param>
     /// <param name="operation">位置の式。組の要素の式が分からなければ null</param>
     /// <remarks>組は式の形でなく型で辿るので、組を返す呼び出しや入れ子の組の要素も入力の位置になる</remarks>
-    private static void RegisterScrutinee(PositionNode node, ITypeSymbol? type, IOperation? operation)
+    private static void RegisterScrutinee(
+        PositionNode node,
+        ITypeSymbol? type,
+        IOperation? operation
+    )
     {
         node.Reveal();
 
@@ -85,7 +94,10 @@ internal sealed class CatchAllArms
         {
             var element = tuple.TupleElements[index];
             var elementOperation = elements is { } known ? known[index] : null;
-            var child = node.Add(ScrutineePosition(element.Type, elementOperation), PositionStep.TupleElement(index, tuple));
+            var child = node.Add(
+                ScrutineePosition(element.Type, elementOperation),
+                PositionStep.TupleElement(index, tuple)
+            );
             RegisterScrutinee(child, element.Type, elementOperation);
         }
     }
@@ -93,7 +105,13 @@ internal sealed class CatchAllArms
     /// <summary>arm の pattern が当たる位置と、その位置の case の記録</summary>
     /// <param name="arm">pattern を持つ arm</param>
     private void Scan(MatchArm arm) =>
-        PatternWalk.Run(arm.Pattern!, PatternPath.Root, _typeText, intoOpaque: true, visit => Record(visit, arm.Exempt));
+        PatternWalk.Run(
+            arm.Pattern!,
+            PatternPath.Root,
+            _typeText,
+            intoOpaque: true,
+            visit => Record(visit, arm.Exempt)
+        );
 
     /// <summary>位置に当てた pattern の記録</summary>
     /// <param name="visit">巡回で訪れた pattern</param>
@@ -116,7 +134,9 @@ internal sealed class CatchAllArms
 
         position.Note(visit.Pattern);
         if (!exempt)
-            _candidates.Add(new Candidate(node, position, visit.Pattern, visit.Opaque, _conversions));
+            _candidates.Add(
+                new Candidate(node, position, visit.Pattern, visit.Opaque, _conversions)
+            );
     }
 
     /// <summary>pattern が当たる位置の節</summary>
@@ -131,7 +151,14 @@ internal sealed class CatchAllArms
             return Remember(pattern, _root);
 
         var parent = _tops[TopOf(origin.Owner)];
-        return Remember(pattern, parent.Find(origin.Step) ?? parent.Add(CasePosition.At(pattern.InputType, null, isScrutinee: false), origin.Step));
+        return Remember(
+            pattern,
+            parent.Find(origin.Step)
+                ?? parent.Add(
+                    CasePosition.At(pattern.InputType, null, isScrutinee: false),
+                    origin.Step
+                )
+        );
     }
 
     /// <summary>位置に当てた pattern の最上位と節の対応の記録</summary>
@@ -150,7 +177,11 @@ internal sealed class CatchAllArms
     private static IPatternOperation TopOf(IPatternOperation pattern)
     {
         var top = pattern;
-        while (top.Parent is (IBinaryPatternOperation or INegatedPatternOperation) and IPatternOperation parent)
+        while (
+            top.Parent
+                is (IBinaryPatternOperation or INegatedPatternOperation)
+                    and IPatternOperation parent
+        )
             top = parent;
 
         return top;
@@ -162,11 +193,15 @@ internal sealed class CatchAllArms
     /// <remarks>入力と保護された下位の位置が持つ閉じた型ごとの default の重複しない報告</remarks>
     private ImmutableArray<CatchAll> Report(ImmutableArray<MatchArm> arms)
     {
-        var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>()
+        var reports = _candidates
+            .Select(candidate => candidate.Report())
+            .OfType<CatchAll>()
             .Concat(_coverings.SelectMany(covering => covering.Report()))
             .ToList();
         foreach (var name in _root.ProtectedNames().Distinct())
-            reports.AddRange(arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, name)));
+            reports.AddRange(
+                arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, name))
+            );
 
         return [.. reports.Distinct()];
     }
@@ -182,7 +217,8 @@ internal sealed class CatchAllArms
         CasePosition Position,
         IPatternOperation Pattern,
         bool Opaque,
-        TypeConversions Conversions)
+        TypeConversions Conversions
+    )
     {
         /// <summary>pattern が後から足す case を受け取る場合の報告</summary>
         /// <returns>保護対象の将来の case を受理する pattern の報告か null</returns>
@@ -190,10 +226,14 @@ internal sealed class CatchAllArms
         internal CatchAll? Report()
         {
             var pattern = Pattern;
-            var families = Position.Families(Node.Overlapping(Conversions).Select(peer => peer.Position).OfType<CasePosition>());
+            var families = Position.Families(
+                Node.Overlapping(Conversions).Select(peer => peer.Position).OfType<CasePosition>()
+            );
             var family = Opaque
                 ? families.FirstOrDefault()
-                : families.FirstOrDefault(candidate => candidate.Accepts(pattern) != Acceptance.Never);
+                : families.FirstOrDefault(candidate =>
+                    candidate.Accepts(pattern) != Acceptance.Never
+                );
             return family is null ? null : new CatchAll(pattern.Syntax, family.Name);
         }
     }
@@ -202,7 +242,11 @@ internal sealed class CatchAllArms
     /// <param name="Node">pattern が当たる位置の節</param>
     /// <param name="Pattern">位置に当てた pattern の最上位</param>
     /// <param name="Conversions">型の重なりを判定する変換</param>
-    private readonly record struct Covering(PositionNode Node, IPatternOperation Pattern, TypeConversions Conversions)
+    private readonly record struct Covering(
+        PositionNode Node,
+        IPatternOperation Pattern,
+        TypeConversions Conversions
+    )
     {
         /// <summary>暗黙に受理される保護対象の位置の報告</summary>
         /// <returns>この pattern の構文に対応付けた保護対象の型ごとの報告</returns>
@@ -211,8 +255,12 @@ internal sealed class CatchAllArms
         {
             var pattern = Pattern;
             var conversions = Conversions;
-            return Node.Overlapping(conversions).Prepend(Node).SelectMany(owner => owner.Children)
-                .Where(part => PatternSilence.Toward(pattern, part, conversions) != Acceptance.Never)
+            return Node.Overlapping(conversions)
+                .Prepend(Node)
+                .SelectMany(owner => owner.Children)
+                .Where(part =>
+                    PatternSilence.Toward(pattern, part, conversions) != Acceptance.Never
+                )
                 .SelectMany(part => part.ProtectedNames())
                 .Distinct()
                 .Select(name => new CatchAll(pattern.Syntax, name));

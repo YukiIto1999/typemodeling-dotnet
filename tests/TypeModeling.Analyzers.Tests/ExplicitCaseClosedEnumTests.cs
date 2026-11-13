@@ -40,17 +40,20 @@ public sealed class ExplicitCaseClosedEnumTests
     [Arguments("not Color.Red => 0", "not Color.Red")]
     public async Task Arms_that_accept_every_other_member_are_rejected(string arm, string flagged)
     {
-        var diagnostics = await RunClosed(Colors + $$"""
+        var diagnostics = await RunClosed(
+            Colors
+                + $$"""
 
-            internal static class Handler
-            {
-                internal static int Describe(Color color) => color switch
+                internal static class Handler
                 {
-                    Color.Red => 1,
-                    {{arm}},
-                };
-            }
-            """);
+                    internal static int Describe(Color color) => color switch
+                    {
+                        Color.Red => 1,
+                        {{arm}},
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo([flagged]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -60,38 +63,41 @@ public sealed class ExplicitCaseClosedEnumTests
     [Test]
     public async Task Named_members_are_accepted_and_open_enums_keep_their_fallback()
     {
-        var diagnostics = await RunClosed(Colors + """
+        var diagnostics = await RunClosed(
+            Colors
+                + """
 
-            internal static class Handler
-            {
-                internal static int Members(Color color) => color switch
+                internal static class Handler
                 {
-                    Color.Red => 1,
-                    Color.Green => 2,
-                    Color.Blue => 3,
-                };
+                    internal static int Members(Color color) => color switch
+                    {
+                        Color.Red => 1,
+                        Color.Green => 2,
+                        Color.Blue => 3,
+                    };
 
-                internal static int Alternatives(Color color) => color switch
-                {
-                    Color.Red or Color.Green => 1,
-                    Color.Blue => 2,
-                };
+                    internal static int Alternatives(Color color) => color switch
+                    {
+                        Color.Red or Color.Green => 1,
+                        Color.Blue => 2,
+                    };
 
-                internal static int Optional(Color? color) => color switch
-                {
-                    null => 0,
-                    Color.Red => 1,
-                    Color.Green => 2,
-                    Color.Blue => 3,
-                };
+                    internal static int Optional(Color? color) => color switch
+                    {
+                        null => 0,
+                        Color.Red => 1,
+                        Color.Green => 2,
+                        Color.Blue => 3,
+                    };
 
-                internal static int Open(Plain plain) => plain switch
-                {
-                    Plain.None => 1,
-                    _ => 2,
-                };
-            }
-            """);
+                    internal static int Open(Plain plain) => plain switch
+                    {
+                        Plain.None => 1,
+                        _ => 2,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -101,36 +107,39 @@ public sealed class ExplicitCaseClosedEnumTests
     [Test]
     public async Task A_default_label_on_a_closed_enum_is_rejected()
     {
-        var diagnostics = await RunClosed(Colors + """
+        var diagnostics = await RunClosed(
+            Colors
+                + """
 
-            internal static class Handler
-            {
-                internal static int Fallback(Color color)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (color)
+                    internal static int Fallback(Color color)
                     {
-                        case Color.Red: result = 1; break;
-                        default: result = 2; break;
+                        var result = 0;
+                        switch (color)
+                        {
+                            case Color.Red: result = 1; break;
+                            default: result = 2; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int Named(Color color)
-                {
-                    var result = 0;
-                    switch (color)
+                    internal static int Named(Color color)
                     {
-                        case Color.Red: result = 1; break;
-                        case Color.Green: result = 2; break;
-                        case Color.Blue: result = 3; break;
-                    }
+                        var result = 0;
+                        switch (color)
+                        {
+                            case Color.Red: result = 1; break;
+                            case Color.Green: result = 2; break;
+                            case Color.Blue: result = 3; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

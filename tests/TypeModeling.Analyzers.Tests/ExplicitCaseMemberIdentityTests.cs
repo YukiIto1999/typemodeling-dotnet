@@ -33,25 +33,29 @@ public sealed class ExplicitCaseMemberIdentityTests
     [Test]
     public async Task A_record_slot_and_its_property_are_one_position_in_either_order()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int PropertyAfterSlot(Outcome outcome) => outcome switch
+                internal static class Handler
                 {
-                    Outcome.Done(PaymentState.Pending) => 1,
-                    Outcome.Done { State: var state } => state.Label.Length,
-                    Outcome.Skipped => 0,
-                };
+                    internal static int PropertyAfterSlot(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done(PaymentState.Pending) => 1,
+                        Outcome.Done { State: var state } => state.Label.Length,
+                        Outcome.Skipped => 0,
+                    };
 
-                internal static int SlotAfterProperty(Outcome outcome) => outcome switch
-                {
-                    Outcome.Done { State: PaymentState.Pending } => 1,
-                    Outcome.Done(var state) => state.Label.Length,
-                    Outcome.Skipped => 0,
-                };
-            }
-            """);
+                    internal static int SlotAfterProperty(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done { State: PaymentState.Pending } => 1,
+                        Outcome.Done(var state) => state.Label.Length,
+                        Outcome.Skipped => 0,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["var state", "var state"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -61,27 +65,31 @@ public sealed class ExplicitCaseMemberIdentityTests
     [Test]
     public async Task An_unrelated_written_member_does_not_hide_an_omitted_active_payload()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int PropertyOmitsSlot(Receipt receipt) => receipt switch
+                internal static class Handler
                 {
-                    Receipt(PaymentState.Pending, _) => 1,
-                    { Count: 0 } => 2,
-                    Receipt(PaymentState.Settled, _) => 3,
-                    Receipt(PaymentState.Failed, _) => 4,
-                };
+                    internal static int PropertyOmitsSlot(Receipt receipt) => receipt switch
+                    {
+                        Receipt(PaymentState.Pending, _) => 1,
+                        { Count: 0 } => 2,
+                        Receipt(PaymentState.Settled, _) => 3,
+                        Receipt(PaymentState.Failed, _) => 4,
+                    };
 
-                internal static int SlotWritesPropertyBroadly(Receipt receipt) => receipt switch
-                {
-                    { State: PaymentState.Pending } => 1,
-                    Receipt(_, 0) => 2,
-                    { State: PaymentState.Settled } => 3,
-                    { State: PaymentState.Failed } => 4,
-                };
-            }
-            """);
+                    internal static int SlotWritesPropertyBroadly(Receipt receipt) => receipt switch
+                    {
+                        { State: PaymentState.Pending } => 1,
+                        Receipt(_, 0) => 2,
+                        { State: PaymentState.Settled } => 3,
+                        { State: PaymentState.Failed } => 4,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["{ Count: 0 }", "_"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -91,30 +99,36 @@ public sealed class ExplicitCaseMemberIdentityTests
     [Test]
     public async Task A_custom_deconstruct_slot_is_never_merged_with_a_similarly_named_property()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int PropertyOmitsSlot(Ledger ledger) => ledger switch
+                internal static class Handler
                 {
-                    Ledger(PaymentState.Pending) => 1,
-                    { State: var current } => current.Label.Length,
-                };
+                    internal static int PropertyOmitsSlot(Ledger ledger) => ledger switch
+                    {
+                        Ledger(PaymentState.Pending) => 1,
+                        { State: var current } => current.Label.Length,
+                    };
 
-                internal static int SlotOmitsProperty(Ledger ledger) => ledger switch
-                {
-                    { State: PaymentState.Pending } => 1,
-                    Ledger(var shown) => shown.Label.Length,
-                };
+                    internal static int SlotOmitsProperty(Ledger ledger) => ledger switch
+                    {
+                        { State: PaymentState.Pending } => 1,
+                        Ledger(var shown) => shown.Label.Length,
+                    };
 
-                internal static int Untouched(Ledger ledger) => ledger switch
-                {
-                    Ledger(var shown) => shown.Label.Length,
-                };
-            }
-            """);
+                    internal static int Untouched(Ledger ledger) => ledger switch
+                    {
+                        Ledger(var shown) => shown.Label.Length,
+                    };
+                }
+                """
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["{ State: var current }", "Ledger(var shown)"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo(["{ State: var current }", "Ledger(var shown)"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -122,46 +136,50 @@ public sealed class ExplicitCaseMemberIdentityTests
     [Test]
     public async Task Mixed_forms_are_accepted_where_every_active_position_is_written_or_exempt()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int SlotThenProperty(Outcome outcome) => outcome switch
+                internal static class Handler
                 {
-                    Outcome.Done(PaymentState.Pending) => 1,
-                    Outcome.Done { State: PaymentState.Settled or PaymentState.Failed } => 2,
-                    Outcome.Skipped => 0,
-                };
+                    internal static int SlotThenProperty(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done(PaymentState.Pending) => 1,
+                        Outcome.Done { State: PaymentState.Settled or PaymentState.Failed } => 2,
+                        Outcome.Skipped => 0,
+                    };
 
-                internal static int PropertyThenSlot(Outcome outcome) => outcome switch
-                {
-                    Outcome.Done { State: PaymentState.Pending } => 1,
-                    Outcome.Done(PaymentState.Settled or PaymentState.Failed) => 2,
-                    Outcome.Skipped => 0,
-                };
+                    internal static int PropertyThenSlot(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done { State: PaymentState.Pending } => 1,
+                        Outcome.Done(PaymentState.Settled or PaymentState.Failed) => 2,
+                        Outcome.Skipped => 0,
+                    };
 
-                internal static int UntouchedProperty(Outcome outcome) => outcome switch
-                {
-                    Outcome.Done { State: var state } => state.Label.Length,
-                    Outcome.Skipped => 0,
-                };
+                    internal static int UntouchedProperty(Outcome outcome) => outcome switch
+                    {
+                        Outcome.Done { State: var state } => state.Label.Length,
+                        Outcome.Skipped => 0,
+                    };
 
-                internal static int UntouchedMember(Receipt receipt) => receipt switch
-                {
-                    { Count: 0 } => 1,
-                    { Count: var count } => count,
-                };
+                    internal static int UntouchedMember(Receipt receipt) => receipt switch
+                    {
+                        { Count: 0 } => 1,
+                        { Count: var count } => count,
+                    };
 
-                internal static int Guarded(Outcome outcome, bool flag) => outcome switch
-                {
-                    Outcome.Done(PaymentState.Pending) => 1,
-                    Outcome.Done { State: var state } when flag => state.Label.Length,
-                    Outcome.Done(PaymentState.Settled) => 2,
-                    Outcome.Done(PaymentState.Failed) => 3,
-                    Outcome.Skipped => 0,
-                };
-            }
-            """);
+                    internal static int Guarded(Outcome outcome, bool flag) => outcome switch
+                    {
+                        Outcome.Done(PaymentState.Pending) => 1,
+                        Outcome.Done { State: var state } when flag => state.Label.Length,
+                        Outcome.Done(PaymentState.Settled) => 2,
+                        Outcome.Done(PaymentState.Failed) => 3,
+                        Outcome.Skipped => 0,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

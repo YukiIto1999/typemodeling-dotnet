@@ -1,7 +1,7 @@
 using System.Globalization;
 using CsCheck;
-using TypeModeling.Domain;
 using TUnit.Core;
+using TypeModeling.Domain;
 
 namespace TypeModeling.Tests;
 
@@ -16,61 +16,90 @@ public sealed class ResultEqualityLaws
     [Test]
     public void Only_results_with_the_same_case_and_value_are_equal()
     {
-        Gen.Int.Select(Gen.String).Sample((value, reason) =>
-        {
-            var succeeded = Succeed(value);
-            var failed = Fail(reason);
-            return succeeded == Succeed(value) && succeeded.Equals((object)Succeed(value)) &&
-                   failed == Fail(reason) && failed.Equals((object)Fail(reason)) &&
-                   Succeed(0) != failed && failed != succeeded &&
-                   succeeded != Succeed(unchecked(value + 1)) && failed != Fail(reason + "x") &&
-                   !succeeded.Equals((object)value) && !failed.Equals(null) &&
-                   succeeded.GetHashCode() == Succeed(value).GetHashCode() &&
-                   failed.GetHashCode() == Fail(reason).GetHashCode();
-        });
+        Gen.Int.Select(Gen.String)
+            .Sample(
+                (value, reason) =>
+                {
+                    var succeeded = Succeed(value);
+                    var failed = Fail(reason);
+                    return succeeded == Succeed(value)
+                        && succeeded.Equals((object)Succeed(value))
+                        && failed == Fail(reason)
+                        && failed.Equals((object)Fail(reason))
+                        && Succeed(0) != failed
+                        && failed != succeeded
+                        && succeeded != Succeed(unchecked(value + 1))
+                        && failed != Fail(reason + "x")
+                        && !succeeded.Equals((object)value)
+                        && !failed.Equals(null)
+                        && succeeded.GetHashCode() == Succeed(value).GetHashCode()
+                        && failed.GetHashCode() == Fail(reason).GetHashCode();
+                }
+            );
     }
 
     /// <summary>辞書のキーとしての使用で有効な case の payload だけを観測するハッシュ</summary>
     [Test]
     public void Dictionary_keys_hash_only_the_active_case_payload()
     {
-        Gen.Int.Select(value => value | 1).Sample(value =>
-        {
-            Result<GuardedPayload, GuardedPayload> succeeded = Result.Succeeded(new GuardedPayload(value));
-            Result<GuardedPayload, GuardedPayload> failed = Result.Failed(new GuardedPayload(value));
-            var entries = new Dictionary<Result<GuardedPayload, GuardedPayload>, string>
+        Gen.Int.Select(value => value | 1)
+            .Sample(value =>
             {
-                [succeeded] = "success",
-                [failed] = "failure",
-            };
-            return entries[(Result<GuardedPayload, GuardedPayload>)Result.Succeeded(new GuardedPayload(value))] == "success" &&
-                   entries[(Result<GuardedPayload, GuardedPayload>)Result.Failed(new GuardedPayload(value))] == "failure";
-        });
+                Result<GuardedPayload, GuardedPayload> succeeded = Result.Succeeded(
+                    new GuardedPayload(value)
+                );
+                Result<GuardedPayload, GuardedPayload> failed = Result.Failed(
+                    new GuardedPayload(value)
+                );
+                var entries = new Dictionary<Result<GuardedPayload, GuardedPayload>, string>
+                {
+                    [succeeded] = "success",
+                    [failed] = "failure",
+                };
+                return entries[
+                        (Result<GuardedPayload, GuardedPayload>)
+                            Result.Succeeded(new GuardedPayload(value))
+                    ] == "success"
+                    && entries[
+                        (Result<GuardedPayload, GuardedPayload>)
+                            Result.Failed(new GuardedPayload(value))
+                    ] == "failure";
+            });
     }
 
     /// <summary>未使用の payload を観測しない結果の文字列化</summary>
     [Test]
     public void Rendering_observes_only_the_active_case_payload()
     {
-        Gen.Int.Select(value => value | 1).Sample(value =>
-        {
-            Result<GuardedPayload, GuardedPayload> succeeded = Result.Succeeded(new GuardedPayload(value));
-            Result<GuardedPayload, GuardedPayload> failed = Result.Failed(new GuardedPayload(value));
-            var marker = "payload:" + value.ToString(CultureInfo.InvariantCulture);
-            return succeeded.ToString().Contains(marker, StringComparison.Ordinal) &&
-                   failed.ToString().Contains(marker, StringComparison.Ordinal);
-        });
+        Gen.Int.Select(value => value | 1)
+            .Sample(value =>
+            {
+                Result<GuardedPayload, GuardedPayload> succeeded = Result.Succeeded(
+                    new GuardedPayload(value)
+                );
+                Result<GuardedPayload, GuardedPayload> failed = Result.Failed(
+                    new GuardedPayload(value)
+                );
+                var marker = "payload:" + value.ToString(CultureInfo.InvariantCulture);
+                return succeeded.ToString().Contains(marker, StringComparison.Ordinal)
+                    && failed.ToString().Contains(marker, StringComparison.Ordinal);
+            });
     }
 
     /// <summary>TryGetValue による持つ case だけの取り出し</summary>
     [Test]
     public void TryGetValue_takes_out_only_the_case_it_holds()
     {
-        Gen.Int.Select(Gen.String).Sample((value, reason) =>
-            Succeed(value).TryGetValue(out Succeeded<int> succeeded) && succeeded.Value == value &&
-            !Succeed(value).TryGetValue(out Failed<string> _) &&
-            Fail(reason).TryGetValue(out Failed<string> failed) && failed.Failure == reason &&
-            !Fail(reason).TryGetValue(out Succeeded<int> _));
+        Gen.Int.Select(Gen.String)
+            .Sample(
+                (value, reason) =>
+                    Succeed(value).TryGetValue(out Succeeded<int> succeeded)
+                    && succeeded.Value == value
+                    && !Succeed(value).TryGetValue(out Failed<string> _)
+                    && Fail(reason).TryGetValue(out Failed<string> failed)
+                    && failed.Failure == reason
+                    && !Fail(reason).TryGetValue(out Succeeded<int> _)
+            );
     }
 
     /// <summary>未初期化の payload の観測を拒否する値</summary>
@@ -85,10 +114,12 @@ public sealed class ResultEqualityLaws
         /// <summary>初期化済みの payload の表示</summary>
         /// <returns>値を識別できる表示文字列</returns>
         /// <exception cref="InvalidOperationException">未初期化の payload の観測</exception>
-        public override string ToString() => "payload:" + Observe().ToString(CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            "payload:" + Observe().ToString(CultureInfo.InvariantCulture);
 
-        private int Observe() => Value != 0
-            ? Value
-            : throw new InvalidOperationException("An inactive payload was observed.");
+        private int Observe() =>
+            Value != 0
+                ? Value
+                : throw new InvalidOperationException("An inactive payload was observed.");
     }
 }

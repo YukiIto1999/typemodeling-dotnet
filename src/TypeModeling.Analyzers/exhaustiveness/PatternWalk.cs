@@ -43,8 +43,8 @@ internal sealed class PatternWalk
         PatternPath path,
         TypeText typeText,
         bool intoOpaque,
-        Action<PatternVisit> visit) =>
-        new PatternWalk(typeText, intoOpaque, visit).Visit(pattern, path, true, false);
+        Action<PatternVisit> visit
+    ) => new PatternWalk(typeText, intoOpaque, visit).Visit(pattern, path, true, false);
 
     /// <summary>pattern の訪問と、部分 pattern の巡回</summary>
     /// <param name="pattern">訪れる pattern</param>
@@ -110,7 +110,10 @@ internal sealed class PatternWalk
     private string? Narrowing(IRecursivePatternOperation recursive)
     {
         var matched = recursive.MatchedType;
-        if (matched.IsTupleType || SymbolEqualityComparer.Default.Equals(matched, recursive.InputType))
+        if (
+            matched.IsTupleType
+            || SymbolEqualityComparer.Default.Equals(matched, recursive.InputType)
+        )
             return null;
 
         return _typeText.Render(matched);
@@ -122,6 +125,12 @@ internal sealed class PatternWalk
     /// <param name="narrowing">property pattern に書く型</param>
     /// <returns>member の先の部分値への経路。member を解決できなければ null</returns>
     /// <remarks>compiler は <c>{ A.B: p }</c> を <c>{ A: { B: p } }</c> の入れ子として表すので、member は一段ずつ現れる</remarks>
-    private static PatternPath? MemberPath(IOperation member, PatternPath path, string? narrowing) =>
-        member is IMemberReferenceOperation reference ? path.Property(narrowing, reference.Member.Name) : null;
+    private static PatternPath? MemberPath(
+        IOperation member,
+        PatternPath path,
+        string? narrowing
+    ) =>
+        member is IMemberReferenceOperation reference
+            ? path.Property(narrowing, reference.Member.Name)
+            : null;
 }

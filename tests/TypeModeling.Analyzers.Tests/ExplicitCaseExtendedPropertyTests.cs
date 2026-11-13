@@ -22,29 +22,33 @@ public sealed class ExplicitCaseExtendedPropertyTests
     [Test]
     public async Task An_extended_and_a_nested_property_pattern_name_one_position()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int ExtendedFirst(Envelope envelope) => envelope switch
+                internal static class Handler
                 {
-                    { Inner.State: PaymentState.Pending } => 1,
-                    { Inner: { State: PaymentState.Settled or PaymentState.Failed } } => 2,
-                };
+                    internal static int ExtendedFirst(Envelope envelope) => envelope switch
+                    {
+                        { Inner.State: PaymentState.Pending } => 1,
+                        { Inner: { State: PaymentState.Settled or PaymentState.Failed } } => 2,
+                    };
 
-                internal static int NestedFirst(Envelope envelope) => envelope switch
-                {
-                    { Inner: { State: PaymentState.Pending } } => 1,
-                    { Inner.State: PaymentState.Settled or PaymentState.Failed } => 2,
-                };
+                    internal static int NestedFirst(Envelope envelope) => envelope switch
+                    {
+                        { Inner: { State: PaymentState.Pending } } => 1,
+                        { Inner.State: PaymentState.Settled or PaymentState.Failed } => 2,
+                    };
 
-                internal static int Deep(Holder holder) => holder switch
-                {
-                    { Outer.Inner.State: PaymentState.Pending } => 1,
-                    { Outer: { Inner: { State: PaymentState.Settled or PaymentState.Failed } } } => 2,
-                };
-            }
-            """);
+                    internal static int Deep(Holder holder) => holder switch
+                    {
+                        { Outer.Inner.State: PaymentState.Pending } => 1,
+                        { Outer: { Inner: { State: PaymentState.Settled or PaymentState.Failed } } } => 2,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -54,23 +58,27 @@ public sealed class ExplicitCaseExtendedPropertyTests
     [Test]
     public async Task A_catch_all_through_an_extended_property_pattern_is_rejected_where_it_is_written()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Shallow(Envelope envelope) => envelope switch
+                internal static class Handler
                 {
-                    { Inner: { State: PaymentState.Pending } } => 1,
-                    { Inner.State: var any } => any.Label.Length,
-                };
+                    internal static int Shallow(Envelope envelope) => envelope switch
+                    {
+                        { Inner: { State: PaymentState.Pending } } => 1,
+                        { Inner.State: var any } => any.Label.Length,
+                    };
 
-                internal static int Deep(Holder holder) => holder switch
-                {
-                    { Outer: { Inner: { State: PaymentState.Pending } } } => 1,
-                    { Outer.Inner.State: var any } => any.Label.Length,
-                };
-            }
-            """);
+                    internal static int Deep(Holder holder) => holder switch
+                    {
+                        { Outer: { Inner: { State: PaymentState.Pending } } } => 1,
+                        { Outer.Inner.State: var any } => any.Label.Length,
+                    };
+                }
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["var any", "var any"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

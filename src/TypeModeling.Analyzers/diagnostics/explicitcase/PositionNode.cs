@@ -47,7 +47,8 @@ internal sealed class PositionNode
     /// <summary>同じ節になる一段下の部分値の節</summary>
     /// <param name="step">部分値を取り出す段</param>
     /// <returns>同じ段を持つ子の節か null</returns>
-    internal PositionNode? Find(PositionStep step) => Children.FirstOrDefault(child => child.Step.IsSameAs(step));
+    internal PositionNode? Find(PositionStep step) =>
+        Children.FirstOrDefault(child => child.Step.IsSameAs(step));
 
     /// <summary>一段下の部分値の節の追加</summary>
     /// <param name="position">部分値が持つ閉じた case の記録か null</param>
@@ -71,7 +72,12 @@ internal sealed class PositionNode
     {
         var level = new[] { Root };
         foreach (var step in Steps())
-            level = [.. level.SelectMany(node => node.Children.Where(child => child.Step.Overlaps(step, conversions)))];
+            level =
+            [
+                .. level.SelectMany(node =>
+                    node.Children.Where(child => child.Step.Overlaps(step, conversions))
+                ),
+            ];
 
         return level.Where(node => node != this);
     }

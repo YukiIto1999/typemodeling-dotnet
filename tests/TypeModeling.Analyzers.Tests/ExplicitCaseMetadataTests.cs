@@ -13,8 +13,9 @@ public sealed class ExplicitCaseMetadataTests
 {
     /// <summary>TypeModeling の assembly の参照</summary>
     /// <remarks>この test project が union 型や閉じた型を使う project にならないよう、assembly は閉じていない Unit から得る</remarks>
-    private static readonly MetadataReference Runtime =
-        MetadataReference.CreateFromFile(typeof(Unit).Assembly.Location);
+    private static readonly MetadataReference Runtime = MetadataReference.CreateFromFile(
+        typeof(Unit).Assembly.Location
+    );
 
     /// <summary>別の assembly で宣言した、手書きの union と閉じた class の宣言</summary>
     private const string LibrarySource = """
@@ -51,7 +52,8 @@ public sealed class ExplicitCaseMetadataTests
     [Test]
     public async Task The_value_of_a_result_from_the_runtime_assembly_is_protected()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using TypeModeling.Domain;
 
             namespace Probe;
@@ -71,7 +73,10 @@ public sealed class ExplicitCaseMetadataTests
                     _ => 0,
                 };
             }
-            """, true, Runtime);
+            """,
+            true,
+            Runtime
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -81,7 +86,8 @@ public sealed class ExplicitCaseMetadataTests
     [Test]
     public async Task Types_from_a_referenced_assembly_are_protected()
     {
-        var diagnostics = await RunClosed("""
+        var diagnostics = await RunClosed(
+            """
             using Library;
 
             internal static class Handler
@@ -105,7 +111,10 @@ public sealed class ExplicitCaseMetadataTests
                     (Dog, Signal.Red or Signal.Green) => 2,
                 };
             }
-            """, true, Library(LibrarySource));
+            """,
+            true,
+            Library(LibrarySource)
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "_"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

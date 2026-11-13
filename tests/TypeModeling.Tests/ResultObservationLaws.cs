@@ -1,6 +1,6 @@
 using CsCheck;
-using TypeModeling.Domain;
 using TUnit.Core;
+using TypeModeling.Domain;
 
 namespace TypeModeling.Tests;
 
@@ -15,8 +15,10 @@ public sealed class ResultObservationLaws
         {
             Result<int, string> succeeded = Result.Succeeded(value);
             Result<int, string> failed = Result.Failed("e");
-            return !succeeded.IsFailed(out _, out var kept) && kept == value &&
-                   failed.IsFailed(out var failure, out _) && failure.Failure == "e";
+            return !succeeded.IsFailed(out _, out var kept)
+                && kept == value
+                && failed.IsFailed(out var failure, out _)
+                && failure.Failure == "e";
         });
     }
 
@@ -27,7 +29,9 @@ public sealed class ResultObservationLaws
         Gen.String.Sample(reason =>
         {
             Result<int, string> source = Result.Failed(reason);
-            Result<bool, string> propagated = source.IsFailed(out var failed, out var value) ? failed : Result.Succeeded(value > 0);
+            Result<bool, string> propagated = source.IsFailed(out var failed, out var value)
+                ? failed
+                : Result.Succeeded(value > 0);
             return propagated == Result.Failed(reason);
         });
     }
@@ -36,9 +40,17 @@ public sealed class ResultObservationLaws
     [Test]
     public void Match_folds_each_case_with_its_function()
     {
-        Gen.Int.Select(Gen.String).Sample((value, reason) =>
-            ((Result<int, string>)Result.Succeeded(value)).Match(item => item + 1, _ => 0) == value + 1 &&
-            ((Result<int, string>)Result.Failed(reason)).Match(item => item + 1, failure => -failure.Length - 1) == -reason.Length - 1);
+        Gen.Int.Select(Gen.String)
+            .Sample(
+                (value, reason) =>
+                    ((Result<int, string>)Result.Succeeded(value)).Match(item => item + 1, _ => 0)
+                        == value + 1
+                    && ((Result<int, string>)Result.Failed(reason)).Match(
+                        item => item + 1,
+                        failure => -failure.Length - 1
+                    )
+                        == -reason.Length - 1
+            );
     }
 
     /// <summary>Value に入る case と HasValue の対応</summary>
@@ -46,9 +58,12 @@ public sealed class ResultObservationLaws
     public void Value_holds_the_case_that_built_the_result()
     {
         Gen.Int.Sample(value =>
-            ((Result<int, string>)Result.Succeeded(value)).Value is Succeeded<int> { Value: var kept } && kept == value &&
-            ((Result<int, string>)Result.Failed("e")).Value is Failed<string> { Failure: "e" } &&
-            ((Result<int, string>)Result.Succeeded(value)).HasValue);
+            ((Result<int, string>)Result.Succeeded(value)).Value
+                is Succeeded<int> { Value: var kept }
+            && kept == value
+            && ((Result<int, string>)Result.Failed("e")).Value is Failed<string> { Failure: "e" }
+            && ((Result<int, string>)Result.Succeeded(value)).HasValue
+        );
     }
 
     /// <summary>未初期化の結果の観測の欠陥としての送出</summary>
@@ -58,14 +73,29 @@ public sealed class ResultObservationLaws
         var uninitialized = new Result<int, string>[1].Single();
 
         if (uninitialized.HasValue)
-            throw new InvalidOperationException("An uninitialized result reported an initialized case.");
+            throw new InvalidOperationException(
+                "An uninitialized result reported an initialized case."
+            );
 
         _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Value is not null);
-        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.TryGetValue(out Succeeded<int> _));
-        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.TryGetValue(out Failed<string> _));
-        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Match<int>(
-            _ => throw new System.Diagnostics.UnreachableException("An uninitialized result selected success."),
-            _ => throw new System.Diagnostics.UnreachableException("An uninitialized result selected failure.")));
+        _ = Expect.Throws<InvalidOperationException>(() =>
+            uninitialized.TryGetValue(out Succeeded<int> _)
+        );
+        _ = Expect.Throws<InvalidOperationException>(() =>
+            uninitialized.TryGetValue(out Failed<string> _)
+        );
+        _ = Expect.Throws<InvalidOperationException>(() =>
+            uninitialized.Match<int>(
+                _ =>
+                    throw new System.Diagnostics.UnreachableException(
+                        "An uninitialized result selected success."
+                    ),
+                _ =>
+                    throw new System.Diagnostics.UnreachableException(
+                        "An uninitialized result selected failure."
+                    )
+            )
+        );
         _ = Expect.Throws<InvalidOperationException>(() => uninitialized.IsFailed(out _, out _));
         _ = Expect.Throws<InvalidOperationException>(() => uninitialized.GetHashCode());
         _ = Expect.Throws<InvalidOperationException>(() => uninitialized.ToString());
@@ -95,24 +125,36 @@ public sealed class ResultObservationLaws
         Result<string?, string?> sameSuccess = Result.Succeeded<string?>(null);
         Result<string?, string?> sameFailure = Result.Failed<string?>(null);
 
-        if (!succeeded.HasValue || !failed.HasValue ||
-            succeeded.Value is not Succeeded<string?> { Value: null } ||
-            failed.Value is not Failed<string?> { Failure: null } ||
-            !succeeded.TryGetValue(out Succeeded<string?> success) || success.Value is not null ||
-            succeeded.TryGetValue(out Failed<string?> _) ||
-            !failed.TryGetValue(out Failed<string?> failure) || failure.Failure is not null ||
-            failed.TryGetValue(out Succeeded<string?> _) ||
-            succeeded.IsFailed(out _, out var value) || value is not null ||
-            !failed.IsFailed(out var error, out _) || error.Failure is not null ||
-            !succeeded.Match(item => item is null, _ => false) ||
-            !failed.Match(_ => false, item => item is null) ||
-            succeeded == failed || failed == succeeded ||
-            succeeded != sameSuccess || failed != sameFailure ||
-            !succeeded.Equals((object)sameSuccess) || !failed.Equals((object)sameFailure) ||
-            succeeded.GetHashCode() != sameSuccess.GetHashCode() ||
-            failed.GetHashCode() != sameFailure.GetHashCode() ||
-            succeeded.ToString() != new Succeeded<string?>(null).ToString() ||
-            failed.ToString() != new Failed<string?>(null).ToString())
-            throw new InvalidOperationException("Null payloads did not preserve initialized case semantics.");
+        if (
+            !succeeded.HasValue
+            || !failed.HasValue
+            || succeeded.Value is not Succeeded<string?> { Value: null }
+            || failed.Value is not Failed<string?> { Failure: null }
+            || !succeeded.TryGetValue(out Succeeded<string?> success)
+            || success.Value is not null
+            || succeeded.TryGetValue(out Failed<string?> _)
+            || !failed.TryGetValue(out Failed<string?> failure)
+            || failure.Failure is not null
+            || failed.TryGetValue(out Succeeded<string?> _)
+            || succeeded.IsFailed(out _, out var value)
+            || value is not null
+            || !failed.IsFailed(out var error, out _)
+            || error.Failure is not null
+            || !succeeded.Match(item => item is null, _ => false)
+            || !failed.Match(_ => false, item => item is null)
+            || succeeded == failed
+            || failed == succeeded
+            || succeeded != sameSuccess
+            || failed != sameFailure
+            || !succeeded.Equals((object)sameSuccess)
+            || !failed.Equals((object)sameFailure)
+            || succeeded.GetHashCode() != sameSuccess.GetHashCode()
+            || failed.GetHashCode() != sameFailure.GetHashCode()
+            || succeeded.ToString() != new Succeeded<string?>(null).ToString()
+            || failed.ToString() != new Failed<string?>(null).ToString()
+        )
+            throw new InvalidOperationException(
+                "Null payloads did not preserve initialized case semantics."
+            );
     }
 }

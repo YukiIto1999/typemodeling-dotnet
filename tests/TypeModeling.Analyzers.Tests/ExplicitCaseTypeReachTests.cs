@@ -36,23 +36,27 @@ public sealed class ExplicitCaseTypeReachTests
     [Test]
     public async Task A_class_that_a_derived_type_can_join_to_the_interface_is_rejected_where_it_hides_the_payload()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int ClassAfterInterface(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int ClassAfterInterface(object value)
                     {
-                        case IStamped { State: PaymentState.Pending }: result = 1; break;
-                        case Loose: result = 2; break;
-                    }
+                        var result = 0;
+                        switch (value)
+                        {
+                            case IStamped { State: PaymentState.Pending }: result = 1; break;
+                            case Loose: result = 2; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["Loose"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -63,37 +67,43 @@ public sealed class ExplicitCaseTypeReachTests
     [Test]
     public async Task A_type_that_can_intersect_the_branched_scope_is_rejected()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int InterfaceAfterClass(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int InterfaceAfterClass(object value)
                     {
-                        case Loose { State: PaymentState.Pending }: result = 1; break;
-                        case System.IDisposable: result = 2; break;
+                        var result = 0;
+                        switch (value)
+                        {
+                            case Loose { State: PaymentState.Pending }: result = 1; break;
+                            case System.IDisposable: result = 2; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int InterfaceAfterInterface(object value)
-                {
-                    var result = 0;
-                    switch (value)
+                    internal static int InterfaceAfterInterface(object value)
                     {
-                        case IStamped { State: PaymentState.Pending }: result = 1; break;
-                        case System.IDisposable: result = 2; break;
+                        var result = 0;
+                        switch (value)
+                        {
+                            case IStamped { State: PaymentState.Pending }: result = 1; break;
+                            case System.IDisposable: result = 2; break;
+                        }
+
+                        return result;
                     }
-
-                    return result;
                 }
-            }
-            """);
+                """
+        );
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["System.IDisposable", "System.IDisposable"]);
+        await Assert
+            .That(Flagged(diagnostics))
+            .IsEquivalentTo(["System.IDisposable", "System.IDisposable"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
@@ -102,36 +112,40 @@ public sealed class ExplicitCaseTypeReachTests
     [Test]
     public async Task An_interface_that_a_sealed_scope_does_not_implement_is_accepted()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int SealedClass(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int SealedClass(object value)
                     {
-                        case Stamp { State: PaymentState.Pending }: result = 1; break;
-                        case System.IDisposable: result = 2; break;
-                        case IStamped: result = 3; break;
+                        var result = 0;
+                        switch (value)
+                        {
+                            case Stamp { State: PaymentState.Pending }: result = 1; break;
+                            case System.IDisposable: result = 2; break;
+                            case IStamped: result = 3; break;
+                        }
+
+                        return result;
                     }
 
-                    return result;
-                }
-
-                internal static int ValueType(object value)
-                {
-                    var result = 0;
-                    switch (value)
+                    internal static int ValueType(object value)
                     {
-                        case Tag { State: PaymentState.Pending }: result = 1; break;
-                        case System.IDisposable: result = 2; break;
-                    }
+                        var result = 0;
+                        switch (value)
+                        {
+                            case Tag { State: PaymentState.Pending }: result = 1; break;
+                            case System.IDisposable: result = 2; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
@@ -142,24 +156,28 @@ public sealed class ExplicitCaseTypeReachTests
     [Test]
     public async Task An_array_type_is_accepted_after_an_interface_it_cannot_implement()
     {
-        var diagnostics = await RunClosed(Payment() + Declarations + """
+        var diagnostics = await RunClosed(
+            Payment()
+                + Declarations
+                + """
 
-            internal static class Handler
-            {
-                internal static int Arrays(object value)
+                internal static class Handler
                 {
-                    var result = 0;
-                    switch (value)
+                    internal static int Arrays(object value)
                     {
-                        case IStamped { State: PaymentState.Pending }: result = 1; break;
-                        case Loose[]: result = 2; break;
-                        case int[,]: result = 3; break;
-                    }
+                        var result = 0;
+                        switch (value)
+                        {
+                            case IStamped { State: PaymentState.Pending }: result = 1; break;
+                            case Loose[]: result = 2; break;
+                            case int[,]: result = 3; break;
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
-            }
-            """);
+                """
+        );
 
         await Assert.That(Flagged(diagnostics)).IsEmpty();
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();

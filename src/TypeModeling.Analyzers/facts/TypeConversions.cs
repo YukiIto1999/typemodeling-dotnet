@@ -27,7 +27,10 @@ internal readonly struct TypeConversions(Compilation compilation)
     /// <returns>型引数かいずれかの向きに同じ値のまま変換できる型なら true</returns>
     /// <remarks>型引数は制約から重なりを確かめない保守的な判定</remarks>
     internal bool MayShare(ITypeSymbol left, ITypeSymbol right) =>
-        left.TypeKind == TypeKind.TypeParameter || right.TypeKind == TypeKind.TypeParameter || Reaches(left, right) || Reaches(right, left);
+        left.TypeKind == TypeKind.TypeParameter
+        || right.TypeKind == TypeKind.TypeParameter
+        || Reaches(left, right)
+        || Reaches(right, left);
 
     /// <summary>source の値を同じ値のまま destination の値にできるかの判定</summary>
     /// <param name="source">値の型</param>
@@ -43,5 +46,8 @@ internal readonly struct TypeConversions(Compilation compilation)
     /// <param name="conversion">分類した変換</param>
     /// <returns>同一変換か参照変換か boxing 変換か unboxing 変換なら true</returns>
     private static bool PreservesValue(Conversion conversion) =>
-        conversion.IsIdentity || conversion.IsReference || conversion.IsBoxing || conversion.IsUnboxing;
+        conversion.IsIdentity
+        || conversion.IsReference
+        || conversion.IsBoxing
+        || conversion.IsUnboxing;
 }
