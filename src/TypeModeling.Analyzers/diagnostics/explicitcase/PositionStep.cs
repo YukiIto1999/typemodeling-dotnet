@@ -51,7 +51,7 @@ internal readonly record struct PositionStep(ISymbol? Provenance, int Index, ITy
     /// <summary>同じ値を取り出しうる段かの判定</summary>
     /// <param name="other">比べる段</param>
     /// <param name="conversions">型の重なりを判定する変換</param>
-    /// <returns>同じ member か実装先の member を、重なる型の値から取り出しうるなら true</returns>
+    /// <returns>同じ member か実装先の member を重なる型の値から取り出しうるなら true</returns>
     /// <remarks>型の重なりと member の同一性を別の根拠で判定する構成</remarks>
     internal bool Overlaps(PositionStep other, TypeConversions conversions)
     {

@@ -5,10 +5,10 @@ using static TypeModeling.Analyzers.Tests.ExplicitCaseFixture;
 
 namespace TypeModeling.Analyzers.Tests;
 
-/// <summary>case を挙げて分岐した位置の下を、型を調べるだけの case が受け取るかを、variant interface の参照変換で判定すること</summary>
+/// <summary>variant interface の参照変換による payload の隠蔽の診断</summary>
 public sealed class ExplicitCaseVarianceReachTests
 {
-    /// <summary>共変と反変の interface、参照型の引数で実装する sealed な record、値型の引数で実装する sealed な record の宣言</summary>
+    /// <summary>variant interface の型引数の違いを区別する宣言の組</summary>
     private const string Declarations = """
 
         internal interface IOut<out T> { }
@@ -36,7 +36,8 @@ public sealed class ExplicitCaseVarianceReachTests
         }
         """;
 
-    /// <summary>sealed な型が参照変換で一致する variant interface の case を、分岐した位置の中身を隠すものとして拒否すること</summary>
+    /// <summary>参照変換で一致する variant interface の case による payload の隠蔽の拒否</summary>
+    /// <returns>共変と反変の参照変換の検証の完了</returns>
     [Test]
     public async Task A_variant_interface_that_a_sealed_scope_converts_to_is_rejected_where_it_hides_the_payload()
     {
@@ -74,7 +75,8 @@ public sealed class ExplicitCaseVarianceReachTests
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
-    /// <summary>値型の引数で実装する型は、box を要する変換と別の値型への変換では variant interface と一致しないので、case を許可すること</summary>
+    /// <summary>値型の引数を持つ variant interface への誤った変換の除外</summary>
+    /// <returns>boxing と数値変換を型の重なりから除く検証の完了</returns>
     [Test]
     public async Task A_variant_interface_that_only_a_boxing_or_numeric_conversion_reaches_is_accepted()
     {

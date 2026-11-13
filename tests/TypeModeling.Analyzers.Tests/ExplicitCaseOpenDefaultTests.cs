@@ -5,7 +5,7 @@ using static TypeModeling.Analyzers.Tests.ExplicitCaseFixture;
 
 namespace TypeModeling.Analyzers.Tests;
 
-/// <summary>case を挙げて分岐した中身を持つ、閉じていない入力の switch 文の default の label を、同じ中身を隠す束縛の case と同じく拒否すること</summary>
+/// <summary>開いた入力の既定分岐が隠す閉じた型の診断</summary>
 public sealed class ExplicitCaseOpenDefaultTests
 {
     /// <summary>閉じた型を中身に持つ閉じていない record の宣言</summary>
@@ -19,7 +19,8 @@ public sealed class ExplicitCaseOpenDefaultTests
         internal sealed record Parcel(PaymentState First, PaymentState Second, Delivery Mode);
         """;
 
-    /// <summary>他の case が中身で分岐しているときの default の label の拒否と、どの case も分岐していないときの許可</summary>
+    /// <summary>明示した case に基づく payload の既定分岐の保護</summary>
+    /// <returns>分岐による保護の有効化の検証の完了</returns>
     [Test]
     public async Task A_default_label_is_rejected_where_another_case_branched_on_the_payload()
     {
@@ -69,7 +70,8 @@ public sealed class ExplicitCaseOpenDefaultTests
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
-    /// <summary>default の label が隠す、分岐した中身の異なる閉じた型を一つずつ、同じ型は重複なく診断すること</summary>
+    /// <summary>既定分岐が隠す閉じた型ごとの重複しない診断</summary>
+    /// <returns>異なる型を区別する診断の検証の完了</returns>
     [Test]
     public async Task A_default_label_identifies_each_distinct_hidden_family_once()
     {
@@ -93,6 +95,51 @@ public sealed class ExplicitCaseOpenDefaultTests
 
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "default:"]);
         await Assert.That(ReportedMessages(diagnostics)).IsEquivalentTo(MessagesFor(diagnostics, "PaymentState", "Delivery"));
+        await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
+    }
+
+    /// <summary>一つの payload 位置で明示した入れ子の閉じた型の既定分岐の診断</summary>
+    /// <returns>階層ごとに異なる診断が返ることの検証の完了</returns>
+    [Test]
+    public async Task A_default_label_reports_every_activated_level_of_a_closed_hierarchy()
+    {
+        var diagnostics = await RunClosed("""
+            using TypeModeling.Domain;
+
+            namespace Probe;
+
+            [Closed]
+            public abstract record Shape
+            {
+                private Shape() { }
+                public sealed record Circle : Shape;
+
+                [Closed]
+                public abstract record Rect : Shape
+                {
+                    private Rect() { }
+                    public sealed record Square : Rect;
+                    public sealed record Oblong : Rect;
+                }
+            }
+
+            internal sealed record Envelope(Shape Value);
+
+            internal static class Handler
+            {
+                internal static int Describe(Envelope envelope)
+                {
+                    switch (envelope)
+                    {
+                        case { Value: Shape.Rect.Square }: return 1;
+                        default: return 0;
+                    }
+                }
+            }
+            """);
+
+        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["default:", "default:"]);
+        await Assert.That(ReportedMessages(diagnostics).Distinct().Count()).IsEqualTo(2);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 }

@@ -156,10 +156,10 @@ internal sealed class CatchAllArms
         return top;
     }
 
-    /// <summary>記録した全ての arm の判定と、報告の収集</summary>
+    /// <summary>記録した arm の判定に基づく報告の収集</summary>
     /// <param name="arms">switch の全ての arm</param>
     /// <returns>報告する arm</returns>
-    /// <remarks>入力の位置と分岐で守られた下位の位置が持つ閉じた型の集まりごとの、default の label の重複しない報告</remarks>
+    /// <remarks>入力と保護された下位の位置が持つ閉じた型ごとの default の重複しない報告</remarks>
     private ImmutableArray<CatchAll> Report(ImmutableArray<MatchArm> arms)
     {
         var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>()

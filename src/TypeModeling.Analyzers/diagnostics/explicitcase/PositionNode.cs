@@ -80,12 +80,14 @@ internal sealed class PositionNode
     /// <returns>入力位置を空列とする入力に近い順の段</returns>
     private IEnumerable<PositionStep> Steps() => Parent is null ? [] : Parent.Steps().Append(Step);
 
-    /// <summary>この位置以下で将来の case を保護する型名の列挙</summary>
+    /// <summary>この位置以下で明示した階層を含む保護対象の型名の列挙</summary>
     /// <returns>不透明な pattern の外から到達した保護対象の型名の列</returns>
     /// <remarks>異なる位置に現れる同じ型名の重複を許す結果</remarks>
     internal IEnumerable<string> ProtectedNames()
     {
         var below = Children.SelectMany(child => child.ProtectedNames());
-        return IsTransparent && Position is { IsProtected: true } position ? below.Prepend(position.Name) : below;
+        return IsTransparent && Position is { IsProtected: true } position
+            ? position.Families([]).Select(family => family.Name).Concat(below)
+            : below;
     }
 }

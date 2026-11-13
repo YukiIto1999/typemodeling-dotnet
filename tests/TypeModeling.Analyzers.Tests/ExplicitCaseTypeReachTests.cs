@@ -5,10 +5,10 @@ using static TypeModeling.Analyzers.Tests.ExplicitCaseFixture;
 
 namespace TypeModeling.Analyzers.Tests;
 
-/// <summary>case を挙げて分岐した位置の下を、型を調べるだけの case が受け取るかを、型の重なりを確かめられる範囲で判定すること</summary>
+/// <summary>型の一致だけを調べる case による保護対象の payload の隠蔽の診断</summary>
 public sealed class ExplicitCaseTypeReachTests
 {
-    /// <summary>interface、interface を実装しない sealed でない class とそれに interface を足す派生、interface を実装しない sealed な class と値型の宣言</summary>
+    /// <summary>class と interface の実装関係を区別する宣言の組</summary>
     private const string Declarations = """
 
         internal interface IStamped
@@ -31,7 +31,8 @@ public sealed class ExplicitCaseTypeReachTests
         internal readonly record struct Tag(PaymentState State);
         """;
 
-    /// <summary>interface の property で分岐した後、interface を実装しない sealed でない class の case が、派生の値の中身を隠すときの拒否</summary>
+    /// <summary>派生型で interface を実装できる class の case による payload の隠蔽の拒否</summary>
+    /// <returns>派生型を介した重なりの検証の完了</returns>
     [Test]
     public async Task A_class_that_a_derived_type_can_join_to_the_interface_is_rejected_where_it_hides_the_payload()
     {
@@ -57,7 +58,8 @@ public sealed class ExplicitCaseTypeReachTests
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
-    /// <summary>派生が足せる class と interface、interface と別の interface のように、同じ値になりうる型の case の拒否</summary>
+    /// <summary>同じ値を持ちうる異なる型の case による payload の隠蔽の拒否</summary>
+    /// <returns>実装を追加できる型の重なりの検証の完了</returns>
     [Test]
     public async Task A_type_that_can_intersect_the_branched_scope_is_rejected()
     {
@@ -95,7 +97,8 @@ public sealed class ExplicitCaseTypeReachTests
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
-    /// <summary>sealed な class と値型が実装しない interface の case は、分岐した位置の値と重ならないので許可すること</summary>
+    /// <summary>sealed な型と値型が実装しない interface の case の許可</summary>
+    /// <returns>実装関係を持たない型の分離の検証の完了</returns>
     [Test]
     public async Task An_interface_that_a_sealed_scope_does_not_implement_is_accepted()
     {
@@ -134,7 +137,8 @@ public sealed class ExplicitCaseTypeReachTests
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
-    /// <summary>配列型は決まった interface だけを実装し派生も作れないので、実装しない interface の位置で分岐した後の配列の case を許可すること</summary>
+    /// <summary>実装しない interface と配列の型の分離</summary>
+    /// <returns>配列が持ちえない interface との非交差の検証の完了</returns>
     [Test]
     public async Task An_array_type_is_accepted_after_an_interface_it_cannot_implement()
     {

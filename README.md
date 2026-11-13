@@ -208,6 +208,7 @@ A position inside a case, such as the payload of `Succeeded<T>(var value)` or a 
 An arm is also rejected at its own pattern when the pattern leaves a protected position beneath it unwritten, because it accepts a case added later there.
 `_` or `var pair` over a tuple input that has a protected element, and `Done` or `Done { }` where another arm branches on the payload of `Done`, are rejected, once for each distinct protected type they hide.
 A `default:` label is judged like `_`, so over an input that is not protected it is rejected when it hides a protected position that another case branched on, and it reports each distinct protected family once.
+When a position names cases from nested closed hierarchies, `default:` reports each activated hierarchy, not just the outer family.
 An arm that writes the position, such as `Done(var state)`, is judged at that position, and an arm that cannot match the case, such as `Skipped`, is accepted.
 An arm that only tests a type, such as `Base` or `IDisposable`, is judged by whether a value of its type can also be a value of the case that another arm branched on, using the C# identity, reference, boxing, and unboxing conversions in both directions.
 Variance counts, so `case IOut<object>` after `case Covariant { State: ... }` is rejected when `Covariant` implements `IOut<string>` and `IOut<T>` is covariant.
