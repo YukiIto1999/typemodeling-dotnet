@@ -135,7 +135,12 @@ string text = Place(cart).Value switch
 `Result.Succeeded` と `Result.Failed` は型引数を推論し、閉じた階層の新しい失敗は `Result.Failed<OrderFailure>(...)` のように基底型を書いて作る。
 `Map`、`Bind`、`MapFailure`、query 式、`Match` が結果を組み合わせる。
 `Sequence` は最初の失敗で止まり、`Accumulate` と `Zip` は全ての失敗を `NonEmptyList<TFailure>` に集める。
-内部の tag は 0 を未初期化に固定するので、`default` の結果の観測は例外を送出する。
+内部の tag は 0 を未初期化に固定する。
+`HasValue` だけが未初期化でも安全に使える初期化状態の問い合わせであり、`default` の結果には `false` を返す。
+この `false` は業務上の失敗や payload の欠如を表さない。
+payload や case の取り出しと意味的な観測（`Value`、両方の `TryGetValue`、`IsFailed`、`Match`、等価比較、ハッシュ値、文字列変換）は、未初期化の結果に対して `InvalidOperationException` を送出する。
+等価比較は case が違っても両辺の初期化を確認し、未初期化の結果は `null` や無関係な型の object との比較も拒否する。
+型が許す `null` payload で構築した成功や失敗は初期化済みであり、それぞれの case を保つ。
 
 ### 値オブジェクト
 
@@ -185,8 +190,58 @@ generator が private のコンストラクタと `Parse` の結果を返す `Cr
 | TYPMOD018 | Error | 閉じた enum は 0 に当たる member を持つ | closed enum |
 | TYPMOD019 | Error | 閉じた enum への変換は member に当たる定数から行う | closed enum |
 | TYPMOD020 | Error | 閉じた enum を返す演算は定数どうしで member を作る | closed enum |
+| TYPMOD021 | Error(既定で無効) | 閉じた型か union の `Value` への switch は case を一つずつ挙げ、後から足す case を受け取る arm を置かない | なし |
 
 抑止の TYPMOD101、TYPMOD102、TYPMOD103 は、C# 15 が網羅と判定する switch 式から CS8509、CS8524、CS8846 を外す。
+
+### case の明示
+
+C# は閉じた型への switch の末尾に catch-all の arm を置くことを許し、TypeModeling は既定でこの挙動を変えない。
+catch-all の arm は後から足した case も受け取るので、compiler は switch の case の欠落を報せなくなる。
+TYPMOD021 はその arm を拒否する診断であり、既定で無効で、標準の診断設定で有効にする。
+次は、プロジェクトが取り込む `.globalconfig` の例である。
+
+```ini
+is_global = true
+dotnet_diagnostic.TYPMOD021.severity = error
+```
+
+TYPMOD021 は switch 式と switch 文を検査する。
+switch の入力と、組の入力の要素は、型が閉じた class、閉じた enum、閉じた class に制約された型引数、`Result` のような union の `Value` のどれかなら、守る位置になる。
+守る入力は、どの arm も case を挙げていなくても検査するので、`state switch { _ => 1 }` と `default:` は拒否される。
+組への switch の `default:` は、一つの要素だけでなく、隠してしまう守る型の集まりをそれぞれ重複なく診断する。
+case の中の位置、たとえば `Succeeded<T>(var value)` の中身や case の property は、どれかの arm がその位置の case を挙げて分岐するときだけ検査するので、switch が分岐しない中身は束縛しても discard してもよい。
+pattern が下の守る位置を書かないときは、その位置でも後から足す case を受け取るので、その pattern で arm が拒否される。
+守る要素を持つ組の入力への `_` と `var pair`、別の arm が `Done` の中身で分岐しているときの `Done` と `Done { }` が該当し、隠す守る型ごとに一度診断する。
+`default:` は `_` と同じに判定するので、守らない入力でも、他の case が分岐した守る位置を隠すときは拒否され、隠す守る型の集まりを一つずつ重複なく診断する。
+一つの位置で閉じた型の階層が入れ子になっている場合は、`default:` が case の明示した各階層を診断する。
+位置を書く arm、たとえば `Done(var state)` はその位置で判定し、case に当たらない arm、たとえば `Skipped` は許される。
+`Base` や `IDisposable` のように型だけを調べる arm は、他の arm が分岐した case の値が、その型の値でもありうるかで判定する。
+判定には、C# の同一変換、参照変換、boxing 変換、unboxing 変換を、両方の向きで使う。
+`Covariant` が共変の `IOut<T>` の `IOut<string>` を実装するとき、variance も数えるので、`case Covariant { State: ... }` の後の `case IOut<object>` は拒否される。
+sealed でない class と interface は同じ値になりうる。
+interface 同士も同じ値になりうる。
+sealed な class、値型、配列は、変換できない interface と同じ値にならないので、その arm は許される。
+数値変換とユーザー定義変換は数えず、型引数はどの型とも同じ値になりうるものとして扱う。
+pattern は、同じ値を読むなら書き方によらず同じ位置になる。
+組の要素は、位置、要素名、`Item1` のどれで書いても一つの位置になる。
+派生の型が継承または override した property は、派生の型で書いても基底の型で書いても一つの位置になり、`{ A.B: p }` と `{ A: { B: p } }` は同じ位置を指す。
+compiler が同じコンパイルで作った record の `Deconstruct` の引数は、同じ名前の property と一つの位置になる。
+継承で重ならない二つの派生の型で書いた同じ property は、型ごとに別の位置になるので、一方の型で case を挙げても他方の型は守られない。
+interface の property と、sealed な class か値型がそれを実装する public な property は、書く順によらず一つの位置になる。
+sealed でない class は派生が interface を再実装でき、public な property は明示実装と別の値を返しうるので、それらの property は別の位置のままで、一方を書いて分岐中の他方を書かない arm は拒否される。
+派生の型が `new` で隠した property、自分で書いた `Deconstruct`、拡張 `Deconstruct` は別の位置なので、一方を書いて分岐中の他方を書かない arm は拒否される。
+別の assembly の record の `Deconstruct` も、引数の名前や `CompilerGenerated` が property と一致しても、compiler が作ったか返す値かを metadata から確かめられないので、同じ扱いになる。
+そのような record への switch は、`Lamp(Signal.Red, _)` か `{ Light: Signal.Red }` のどちらか一方の書き方で各位置を書く必要があり、二つの書き方を混ぜた arm は拒否される。
+pattern が後から足す case を受け取りうる arm は拒否される。
+具体的には、`_`、`var x`、型そのもの、その基底型、`object`、enum への relational pattern、case への `not`、case を挙げない property pattern と positional pattern が、単独でも `or` と `and` の組合せでも該当する。
+case を挙げる pattern は、`A or B`、`A and { ... }`、`Settled(var at)`、`null` のように許される。
+閉じた class を含む閉じた class は各段で数えるので、`Circle => ..., Rect.Square => ..., Rect => ...` では最後の arm が拒否される。
+定数 `true` でない `when` を持つ switch 式の arm は、compiler が網羅に数えず case の欠落を報せ続けるので許される。
+switch 文には compiler のその検査がないので、guard を持つ catch-all の label も拒否される。
+`not` の内側と list pattern の内側にある守る位置、および守る位置に当てた list pattern は、受け取る範囲を確かめられないので、switch がその位置で分岐するときは拒否される。
+そのような case は、`not` と list pattern の外で肯定形に書く。
+この診断は `is` 式と `if` の連なりを検査せず、union は switch の入力が `Value` の式そのものであるときだけ認識する。
 
 ## 消費側の検査
 

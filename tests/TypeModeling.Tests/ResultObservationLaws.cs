@@ -57,12 +57,62 @@ public sealed class ResultObservationLaws
     {
         var uninitialized = new Result<int, string>[1].Single();
 
-        if (uninitialized.HasValue || uninitialized.Value is not null)
-            throw new InvalidOperationException("未初期化の Result が case の値を持っている。");
+        if (uninitialized.HasValue)
+            throw new InvalidOperationException("An uninitialized result reported an initialized case.");
 
-        var defect = Expect.Throws<InvalidOperationException>(() => uninitialized.Match(item => item, _ => 0));
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Value is not null);
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.TryGetValue(out Succeeded<int> _));
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.TryGetValue(out Failed<string> _));
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Match<int>(
+            _ => throw new System.Diagnostics.UnreachableException("An uninitialized result selected success."),
+            _ => throw new System.Diagnostics.UnreachableException("An uninitialized result selected failure.")));
         _ = Expect.Throws<InvalidOperationException>(() => uninitialized.IsFailed(out _, out _));
-        if (defect.Message != "未初期化の Result を観測した。")
-            throw new InvalidOperationException("未初期化の観測の例外が理由を述べていない: " + defect.Message);
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.GetHashCode());
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.ToString());
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Equals(null));
+        _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Equals(new object()));
+
+        Result<int, string>[] others = [uninitialized, Result.Succeeded(0), Result.Failed("e")];
+        foreach (var other in others)
+        {
+            _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Equals(other));
+            _ = Expect.Throws<InvalidOperationException>(() => other.Equals(uninitialized));
+            _ = Expect.Throws<InvalidOperationException>(() => uninitialized.Equals((object)other));
+            _ = Expect.Throws<InvalidOperationException>(() => other.Equals((object)uninitialized));
+            _ = Expect.Throws<InvalidOperationException>(() => _ = uninitialized == other);
+            _ = Expect.Throws<InvalidOperationException>(() => _ = other == uninitialized);
+            _ = Expect.Throws<InvalidOperationException>(() => _ = uninitialized != other);
+            _ = Expect.Throws<InvalidOperationException>(() => _ = other != uninitialized);
+        }
+    }
+
+    /// <summary>null payload を持つ初期化済み case の区別</summary>
+    [Test]
+    public void Null_payloads_are_initialized_and_preserve_their_cases()
+    {
+        Result<string?, string?> succeeded = Result.Succeeded<string?>(null);
+        Result<string?, string?> failed = Result.Failed<string?>(null);
+        Result<string?, string?> sameSuccess = Result.Succeeded<string?>(null);
+        Result<string?, string?> sameFailure = Result.Failed<string?>(null);
+
+        if (!succeeded.HasValue || !failed.HasValue ||
+            succeeded.Value is not Succeeded<string?> { Value: null } ||
+            failed.Value is not Failed<string?> { Failure: null } ||
+            !succeeded.TryGetValue(out Succeeded<string?> success) || success.Value is not null ||
+            succeeded.TryGetValue(out Failed<string?> _) ||
+            !failed.TryGetValue(out Failed<string?> failure) || failure.Failure is not null ||
+            failed.TryGetValue(out Succeeded<string?> _) ||
+            succeeded.IsFailed(out _, out var value) || value is not null ||
+            !failed.IsFailed(out var error, out _) || error.Failure is not null ||
+            !succeeded.Match(item => item is null, _ => false) ||
+            !failed.Match(_ => false, item => item is null) ||
+            succeeded == failed || failed == succeeded ||
+            succeeded != sameSuccess || failed != sameFailure ||
+            !succeeded.Equals((object)sameSuccess) || !failed.Equals((object)sameFailure) ||
+            succeeded.GetHashCode() != sameSuccess.GetHashCode() ||
+            failed.GetHashCode() != sameFailure.GetHashCode() ||
+            succeeded.ToString() != new Succeeded<string?>(null).ToString() ||
+            failed.ToString() != new Failed<string?>(null).ToString())
+            throw new InvalidOperationException("Null payloads did not preserve initialized case semantics.");
     }
 }

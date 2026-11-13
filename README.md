@@ -135,7 +135,7 @@ string text = Place(cart).Value switch
 `Result.Succeeded` and `Result.Failed` infer the type arguments, and a new failure of a closed hierarchy names its base type, as in `Result.Failed<OrderFailure>(...)`.
 `Map`, `Bind`, `MapFailure`, query expressions, and `Match` compose results.
 `Sequence` stops at the first failure, while `Accumulate` and `Zip` collect every failure in a `NonEmptyList<TFailure>`.
-The internal tag fixes 0 as uninitialized, so observing a `default` result throws.
+The internal tag fixes 0 as uninitialized. `HasValue` is the only safe initialization-status query: it returns `false` for a `default` result, not a business failure or an absent payload. Every payload or case projection and semantic observation (`Value`, both `TryGetValue` overloads, `IsFailed`, `Match`, equality, hashing, and string conversion) throws `InvalidOperationException` on an uninitialized result. Equality checks both operands, even when their cases differ; an uninitialized result also rejects comparison with `null` or an unrelated object. A constructed success or failure with a permitted `null` payload remains initialized and keeps its distinct case.
 
 ### Value object
 
@@ -185,8 +185,53 @@ The generator adds a private constructor and a `Create` method that returns the 
 | TYPMOD018 | Error | A closed enum has a member for 0 | Closed enums |
 | TYPMOD019 | Error | A conversion to a closed enum comes from a constant of a member | Closed enums |
 | TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
+| TYPMOD021 | Error, off by default | A switch over a closed type or a union `Value` names its cases and has no arm that accepts a case added later | None |
 
 The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.
+
+### Explicit cases
+
+C# lets a switch over a closed type end with a catch-all arm, and TypeModeling keeps that behavior by default.
+A catch-all arm also accepts a case added later, so the compiler no longer reports the switch as missing a case.
+TYPMOD021 rejects such arms, is disabled by default, and is enabled through the standard diagnostic configuration, for example in a `.globalconfig` that the project includes:
+
+```ini
+is_global = true
+dotnet_diagnostic.TYPMOD021.severity = error
+```
+
+TYPMOD021 checks switch expressions and switch statements.
+The input of the switch, or an element of a tuple input, is protected when its type is a closed class, a closed enum, a type parameter constrained to a closed class, or the `Value` of a union such as `Result`.
+A protected input is checked even when no arm names a case, so `state switch { _ => 1 }` and a `default:` label are rejected.
+A tuple switch's `default:` label reports each distinct protected family it hides, rather than choosing one tuple element.
+A position inside a case, such as the payload of `Succeeded<T>(var value)` or a property of a case, is checked only where some arm names a case of it, so a payload that the switch does not branch on may be bound or discarded.
+An arm is also rejected at its own pattern when the pattern leaves a protected position beneath it unwritten, because it accepts a case added later there.
+`_` or `var pair` over a tuple input that has a protected element, and `Done` or `Done { }` where another arm branches on the payload of `Done`, are rejected, once for each distinct protected type they hide.
+A `default:` label is judged like `_`, so over an input that is not protected it is rejected when it hides a protected position that another case branched on, and it reports each distinct protected family once.
+When a position names cases from nested closed hierarchies, `default:` reports each activated hierarchy, not just the outer family.
+An arm that writes the position, such as `Done(var state)`, is judged at that position, and an arm that cannot match the case, such as `Skipped`, is accepted.
+An arm that only tests a type, such as `Base` or `IDisposable`, is judged by whether a value of its type can also be a value of the case that another arm branched on, using the C# identity, reference, boxing, and unboxing conversions in both directions.
+Variance counts, so `case IOut<object>` after `case Covariant { State: ... }` is rejected when `Covariant` implements `IOut<string>` and `IOut<T>` is covariant.
+A class that is not sealed and an interface can share a value, and so can two interfaces, while a sealed class, a struct, or an array and an interface it cannot be converted to cannot, so that arm is accepted.
+Numeric and user-defined conversions never count, and a type parameter is treated as able to share a value with any type.
+Patterns name the same position when they read the same value, however they are written.
+An element of a tuple is one position whether it is written by position, by element name, or as `Item1`.
+A property that a derived type inherits or overrides is one position whether it is written on the derived type or on the base type, and `{ A.B: p }` and `{ A: { B: p } }` name the same position.
+A record's positional parameter and the property of the same name are one position when the compiler generated the record's `Deconstruct` in the same compilation.
+A property written on two unrelated derived types is one position for each type, so naming the cases through one type does not protect the other.
+An interface property and the public property that a sealed class or a struct uses to implement it are one position, in either order of writing.
+A class that is not sealed can be derived and re-implement the interface, and a public property can differ from an explicit implementation, so those properties stay separate positions, and an arm that writes one and omits an active other is rejected.
+A property that a derived type hides with `new`, a hand-written `Deconstruct`, and an extension `Deconstruct` are separate positions, so an arm that writes one and omits an active other is rejected.
+The `Deconstruct` of a record from a referenced assembly is treated the same way, even when its parameter names and a `CompilerGenerated` attribute match a property, because metadata does not show whether the compiler generated it or what it returns.
+A switch over such a record therefore has to write each position in one form, either `Lamp(Signal.Red, _)` or `{ Light: Signal.Red }`, and an arm that mixes the two forms is rejected.
+An arm is rejected when its pattern can accept a case added later, that is, `_`, `var x`, the type itself, a base type of it, `object`, a relational pattern on an enum, `not` of a case, and a property or positional pattern that names no case, alone or combined by `or` and `and`.
+Patterns that name cases are accepted, such as `A or B`, `A and { ... }`, `Settled(var at)`, and `null`.
+A closed class that contains closed classes counts at each level, so `Circle => ..., Rect.Square => ..., Rect => ...` rejects the last arm.
+A switch expression arm with a `when` clause that is not the constant `true` is accepted, because the compiler does not count it toward exhaustiveness and still reports a missing case.
+A switch statement has no such compiler check, so a guarded catch-all label is rejected too.
+A protected position inside `not` or inside a list pattern, and a list pattern on a protected position, cannot be verified, so they are rejected whenever the switch branches on that position.
+Write such cases positively, outside `not` and list patterns.
+The diagnostic does not examine `is` expressions and `if` chains, and it recognizes a union only when the switch input is its `Value` expression itself.
 
 ## Consumer checks
 

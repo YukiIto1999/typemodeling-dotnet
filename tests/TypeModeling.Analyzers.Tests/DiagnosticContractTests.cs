@@ -5,6 +5,7 @@ using TUnit.Assertions.Extensions;
 using TUnit.Core;
 using TypeModeling.Analyzers.Diagnostics.ClosedEnum;
 using TypeModeling.Analyzers.Diagnostics.ClosedType;
+using TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 using TypeModeling.Analyzers.Diagnostics.MustUse;
 using TypeModeling.Analyzers.Diagnostics.ResultUsage;
 using TypeModeling.Analyzers.Diagnostics.UnionType;
@@ -35,6 +36,19 @@ public sealed class DiagnosticContractTests
             "TYPMOD004 | Error | 別の assembly の閉じた class からの派生 | '{0}' は、別の assembly の閉じた class '{1}' を基底型にできない。",
             "TYPMOD005 | Error | 閉じた基底型で参照しない型引数 | '{0}' の型引数 '{1}' は、閉じた基底型 '{2}' で参照する。",
         ]);
+
+    /// <summary>ExplicitCaseAnalyzer が公開する、診断の設定で有効にする診断</summary>
+    [Test]
+    public async Task ExplicitCaseAnalyzer_publishes_its_diagnostic_disabled_by_default()
+    {
+        var rule = new ExplicitCaseAnalyzer().SupportedDiagnostics.Single();
+
+        await Assert.That($"{rule.Id} | {rule.DefaultSeverity} | {rule.Title} | {rule.MessageFormat}").IsEqualTo(
+            "TYPMOD021 | Error | 閉じた型の case を挙げない arm | " +
+            "この pattern は、'{0}' に後から足す case を受け取るか、受け取らないと確かめられない。case を一つずつ挙げ、not や list pattern の内側に置かない。");
+        await Assert.That(rule.Category).IsEqualTo("TypeModeling");
+        await Assert.That(rule.IsEnabledByDefault).IsFalse();
+    }
 
     /// <summary>MustUseAnalyzer が公開する診断</summary>
     [Test]
