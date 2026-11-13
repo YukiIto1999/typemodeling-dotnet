@@ -18,6 +18,7 @@ in
 {
   packages = [
     pkgs.dotnet-sdk_10
+    pkgs.csharpier
     pkgs.just
     pkgs.git
     pkgs.jq
