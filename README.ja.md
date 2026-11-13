@@ -211,6 +211,19 @@ switch の入力と、組の入力の要素は、型が閉じた class、閉じ�
 守る入力は、どの arm も case を挙げていなくても検査するので、`state switch { _ => 1 }` と `default:` は拒否される。
 組への switch の `default:` は、一つの要素だけでなく、隠してしまう守る型の集まりをそれぞれ重複なく診断する。
 case の中の位置、たとえば `Succeeded<T>(var value)` の中身や case の property は、どれかの arm がその位置の case を挙げて分岐するときだけ検査するので、switch が分岐しない中身は束縛しても discard してもよい。
+pattern が下の守る位置を書かないときは、その位置でも後から足す case を受け取るので、その pattern で arm が拒否される。
+守る要素を持つ組の入力への `_` と `var pair`、別の arm が `Done` の中身で分岐しているときの `Done` と `Done { }` が該当し、隠す守る型ごとに一度診断する。
+位置を書く arm、たとえば `Done(var state)` はその位置で判定し、case に当たらない arm、たとえば `Skipped` は許される。
+pattern は、同じ値を読むなら書き方によらず同じ位置になる。
+組の要素は、位置、要素名、`Item1` のどれで書いても一つの位置になる。
+派生の型が継承または override した property は、派生の型で書いても基底の型で書いても一つの位置になり、`{ A.B: p }` と `{ A: { B: p } }` は同じ位置を指す。
+compiler が同じコンパイルで作った record の `Deconstruct` の引数は、同じ名前の property と一つの位置になる。
+継承で重ならない二つの派生の型で書いた同じ property は、型ごとに別の位置になるので、一方の型で case を挙げても他方の型は守られない。
+interface の property と、sealed な class か値型がそれを実装する public な property は、書く順によらず一つの位置になる。
+sealed でない class は派生が interface を再実装でき、public な property は明示実装と別の値を返しうるので、それらの property は別の位置のままで、一方を書いて分岐中の他方を書かない arm は拒否される。
+派生の型が `new` で隠した property、自分で書いた `Deconstruct`、拡張 `Deconstruct` は別の位置なので、一方を書いて分岐中の他方を書かない arm は拒否される。
+別の assembly の record の `Deconstruct` も、引数の名前や `CompilerGenerated` が property と一致しても、compiler が作ったか返す値かを metadata から確かめられないので、同じ扱いになる。
+そのような record への switch は、`Lamp(Signal.Red, _)` か `{ Light: Signal.Red }` のどちらか一方の書き方で各位置を書く必要があり、二つの書き方を混ぜた arm は拒否される。
 pattern が後から足す case を受け取りうる arm は拒否される。
 具体的には、`_`、`var x`、型そのもの、その基底型、`object`、enum への relational pattern、case への `not`、case を挙げない property pattern と positional pattern が、単独でも `or` と `and` の組合せでも該当する。
 case を挙げる pattern は、`A or B`、`A and { ... }`、`Settled(var at)`、`null` のように許される。

@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using TypeModeling.Analyzers.Facts;
+using static TypeModeling.Analyzers.Diagnostics.ExplicitCase.AcceptanceAlgebra;
 
 namespace TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 
@@ -110,26 +110,4 @@ internal sealed class CaseFamily
     /// <returns>case 型かその派生なら Never、それ以外は Maybe</returns>
     private Acceptance UnionTypeTest(ITypeSymbol matched) =>
         _unionCases.Any(caseType => TypeLineage.IsAtOrBelow(matched, caseType)) ? Acceptance.Never : Acceptance.Maybe;
-
-    /// <summary>三値の否定</summary>
-    /// <param name="acceptance">否定する度合い</param>
-    /// <returns>Never と Always を入れ替えた度合い。Maybe はそのまま</returns>
-    private static Acceptance Not(Acceptance acceptance) => acceptance switch
-    {
-        Acceptance.Never => Acceptance.Always,
-        Acceptance.Always => Acceptance.Never,
-        _ => Acceptance.Maybe,
-    };
-
-    /// <summary>三値の or</summary>
-    /// <param name="left">左の度合い</param>
-    /// <param name="right">右の度合い</param>
-    /// <returns>受け取る可能性の大きい方</returns>
-    private static Acceptance Or(Acceptance left, Acceptance right) => (Acceptance)Math.Max((int)left, (int)right);
-
-    /// <summary>三値の and</summary>
-    /// <param name="left">左の度合い</param>
-    /// <param name="right">右の度合い</param>
-    /// <returns>受け取る可能性の小さい方</returns>
-    private static Acceptance And(Acceptance left, Acceptance right) => (Acceptance)Math.Min((int)left, (int)right);
 }

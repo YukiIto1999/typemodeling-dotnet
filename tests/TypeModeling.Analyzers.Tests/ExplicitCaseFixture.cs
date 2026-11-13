@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -40,6 +41,24 @@ internal static class ExplicitCaseFixture
         diagnostics
             .Where(diagnostic => diagnostic.Id == Id && !diagnostic.IsSuppressed)
             .Select(diagnostic => diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan));
+
+    /// <summary>診断が報せた message</summary>
+    /// <param name="diagnostics">検査結果の診断</param>
+    /// <returns>抑止されていない診断の message</returns>
+    internal static IEnumerable<string> ReportedMessages(ImmutableArray<Diagnostic> diagnostics) =>
+        diagnostics
+            .Where(diagnostic => diagnostic.Id == Id && !diagnostic.IsSuppressed)
+            .Select(diagnostic => diagnostic.GetMessage(CultureInfo.InvariantCulture));
+
+    /// <summary>診断が case を持つ型として挙げるはずの message</summary>
+    /// <param name="diagnostics">検査結果の診断。一つ以上の診断を含む</param>
+    /// <param name="families">診断が挙げる case を持つ型の名前</param>
+    /// <returns>診断の書式に型の名前を当てた message</returns>
+    internal static IEnumerable<string> MessagesFor(ImmutableArray<Diagnostic> diagnostics, params string[] families)
+    {
+        var format = diagnostics.First(diagnostic => diagnostic.Id == Id).Descriptor.MessageFormat.ToString(CultureInfo.InvariantCulture);
+        return families.Select(family => string.Format(CultureInfo.InvariantCulture, format, family));
+    }
 
     /// <summary>この診断以外の、エラーの重大度の診断</summary>
     /// <param name="diagnostics">検査結果の診断</param>

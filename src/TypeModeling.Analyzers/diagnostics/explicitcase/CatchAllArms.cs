@@ -8,27 +8,35 @@ using TypeModeling.Analyzers.Exhaustiveness;
 namespace TypeModeling.Analyzers.Diagnostics.ExplicitCase;
 
 /// <summary>switch の arm から、後から足す case を受け取るものの探索</summary>
-/// <remarks>
-/// 位置の対応は <see cref="PatternWalk"/> が与える経路で決め、経路が同じ位置の arm の case をまとめて数える。
-/// 位置の判定は <see cref="CasePosition"/> と <see cref="CaseFamily"/> が持つ。
-/// </remarks>
+/// <remarks>明示した位置と暗黙に受理する下位の位置を対象とする将来の case の保護</remarks>
 internal sealed class CatchAllArms
 {
-    /// <summary>位置を示す印。他の要素の discard と経路の文字列で区別できる</summary>
-    private const string PositionMark = "^";
-
     /// <summary>型名を解決する switch の位置の文脈</summary>
     private readonly TypeText _typeText;
 
-    /// <summary>経路ごとの位置。閉じた case を持たない位置は null</summary>
-    private readonly Dictionary<string, CasePosition?> _positions = new();
+    /// <summary>switch の入力の位置の節</summary>
+    private readonly PositionNode _root;
+
+    /// <summary>最上位の部分 pattern ごとの位置の節</summary>
+    private readonly Dictionary<IPatternOperation, PositionNode> _tops = new();
+
+    /// <summary>入力から取り出す閉じた case を持つ位置</summary>
+    private readonly List<CasePosition> _scrutinees = [];
 
     /// <summary>報告するかを判定する、位置に当てた pattern</summary>
     private readonly List<Candidate> _candidates = [];
 
-    /// <summary>型名の文脈による初期化</summary>
+    /// <summary>下位の位置の暗黙の受理を判定する pattern</summary>
+    private readonly List<Covering> _coverings = [];
+
+    /// <summary>入力位置を起点とする判定の初期化</summary>
     /// <param name="typeText">型名を解決する switch の位置の文脈</param>
-    private CatchAllArms(TypeText typeText) => _typeText = typeText;
+    /// <param name="root">switch の入力の位置の節</param>
+    private CatchAllArms(TypeText typeText, PositionNode root)
+    {
+        _typeText = typeText;
+        _root = root;
+    }
 
     /// <summary>後から足す case を受け取る arm の探索</summary>
     /// <param name="value">switch の入力の式</param>
@@ -37,22 +45,32 @@ internal sealed class CatchAllArms
     /// <returns>報告する arm</returns>
     internal static ImmutableArray<CatchAll> Find(IOperation value, ImmutableArray<MatchArm> arms, TypeText typeText)
     {
-        var scan = new CatchAllArms(typeText);
-        scan.RegisterScrutinee(PatternPath.Root, value.Type, value);
+        var scan = new CatchAllArms(typeText, new PositionNode(ScrutineePosition(value.Type, value), default, null));
+        scan.RegisterScrutinee(scan._root, value.Type, value);
         foreach (var arm in arms.Where(candidate => candidate.Pattern is not null))
             scan.Scan(arm);
 
         return scan.Report(arms);
     }
 
+    /// <summary>入力から取り出す位置の閉じた case の特定</summary>
+    /// <param name="type">判定対象の型か型を持たない式を表す null</param>
+    /// <param name="operation">判定対象の式か不明な組要素を表す null</param>
+    /// <returns>閉じた case を持つ位置か null</returns>
+    private static CasePosition? ScrutineePosition(ITypeSymbol? type, IOperation? operation) =>
+        CasePosition.At(type, PositionCollector.UnionOfValue(operation), isScrutinee: true);
+
     /// <summary>switch の入力と、組の入力の各要素の位置の登録</summary>
-    /// <param name="path">位置への経路</param>
+    /// <param name="node">位置の節</param>
     /// <param name="type">位置の型。型のない式なら null</param>
     /// <param name="operation">位置の式。組の要素の式が分からなければ null</param>
     /// <remarks>組は式の形でなく型で辿るので、組を返す呼び出しや入れ子の組の要素も入力の位置になる</remarks>
-    private void RegisterScrutinee(PatternPath path, ITypeSymbol? type, IOperation? operation)
+    private void RegisterScrutinee(PositionNode node, ITypeSymbol? type, IOperation? operation)
     {
-        _positions[path.Wrap(PositionMark)] = CasePosition.At(type, PositionCollector.UnionOfValue(operation), isScrutinee: true);
+        node.Reveal();
+        if (node.Position is { } position)
+            _scrutinees.Add(position);
+
         if (type is not INamedTypeSymbol { IsTupleType: true } tuple)
             return;
 
@@ -60,7 +78,9 @@ internal sealed class CatchAllArms
         for (var index = 0; index < tuple.TupleElements.Length; index++)
         {
             var element = tuple.TupleElements[index];
-            RegisterScrutinee(path.Element(null, index, tuple.TupleElements.Length), element.Type, elements is { } known ? known[index] : null);
+            var elementOperation = elements is { } known ? known[index] : null;
+            var child = node.Add(ScrutineePosition(element.Type, elementOperation), PositionStep.TupleElement(index, tuple));
+            RegisterScrutinee(child, element.Type, elementOperation);
         }
     }
 
@@ -72,21 +92,62 @@ internal sealed class CatchAllArms
     /// <summary>位置に当てた pattern の記録</summary>
     /// <param name="visit">巡回で訪れた pattern</param>
     /// <param name="exempt">報告しない arm の pattern なら true</param>
+    /// <remarks>受理範囲を確定できない不透明な pattern の下位位置判定からの除外</remarks>
     private void Record(PatternVisit visit, bool exempt)
     {
         if (!visit.IsPosition)
             return;
 
-        var key = visit.Path.Wrap(PositionMark);
-        if (!_positions.TryGetValue(key, out var position))
-            _positions[key] = position = CasePosition.At(visit.Pattern.InputType, null, isScrutinee: false);
+        var node = NodeAt(visit.Pattern);
+        if (!visit.Opaque)
+            node.Reveal();
 
-        if (position is null)
+        if (!exempt && !visit.Opaque)
+            _coverings.Add(new Covering(node, visit.Pattern));
+
+        if (node.Position is not { } position)
             return;
 
         position.Note(visit.Pattern);
         if (!exempt)
-            _candidates.Add(new Candidate(position, visit.Pattern, visit.Opaque));
+            _candidates.Add(new Candidate(node, position, visit.Pattern, visit.Opaque));
+    }
+
+    /// <summary>pattern が当たる位置の節</summary>
+    /// <param name="pattern">部分値に当てた pattern の最上位</param>
+    /// <returns>必要なら親の下に追加した対応する位置の節</returns>
+    private PositionNode NodeAt(IPatternOperation pattern)
+    {
+        if (pattern.Parent is ISlicePatternOperation slice)
+            return Remember(pattern, _tops[slice]);
+
+        if (PositionStep.Of(pattern) is not { } origin)
+            return Remember(pattern, _root);
+
+        var parent = _tops[TopOf(origin.Owner)];
+        return Remember(pattern, parent.Find(origin.Step) ?? parent.Add(CasePosition.At(pattern.InputType, null, isScrutinee: false), origin.Step));
+    }
+
+    /// <summary>位置に当てた pattern の最上位と節の対応の記録</summary>
+    /// <param name="top">位置に当てた pattern の最上位</param>
+    /// <param name="node">pattern が当たる位置の節</param>
+    /// <returns>記録した節</returns>
+    private PositionNode Remember(IPatternOperation top, PositionNode node)
+    {
+        _tops[top] = node;
+        return node;
+    }
+
+    /// <summary>同じ位置を判定する最上位の pattern の特定</summary>
+    /// <param name="pattern">recursive pattern か list pattern</param>
+    /// <returns>論理 pattern の外側にある位置の最上位の pattern</returns>
+    private static IPatternOperation TopOf(IPatternOperation pattern)
+    {
+        var top = pattern;
+        while (top.Parent is (IBinaryPatternOperation or INegatedPatternOperation) and IPatternOperation parent)
+            top = parent;
+
+        return top;
     }
 
     /// <summary>記録した全ての arm の判定と、報告の収集</summary>
@@ -94,33 +155,52 @@ internal sealed class CatchAllArms
     /// <returns>報告する arm</returns>
     private ImmutableArray<CatchAll> Report(ImmutableArray<MatchArm> arms)
     {
-        var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>().ToList();
-        foreach (var name in _positions.Values.OfType<CasePosition>()
-            .Where(position => position.IsScrutinee).Select(position => position.Name).Distinct())
-        {
+        var reports = _candidates.Select(candidate => candidate.Report()).OfType<CatchAll>()
+            .Concat(_coverings.SelectMany(covering => covering.Report()))
+            .ToList();
+        foreach (var name in _scrutinees.Select(position => position.Name).Distinct())
             reports.AddRange(arms.Where(arm => arm.Pattern is null).Select(arm => new CatchAll(arm.Syntax, name)));
-        }
 
-        return [.. reports];
+        return [.. reports.Distinct()];
     }
 
-    /// <summary>位置に当てた、報告するかを判定する pattern</summary>
+    /// <summary>明示した位置の将来の case の受理を判定する候補</summary>
+    /// <param name="Node">pattern が当たる位置の節</param>
     /// <param name="Position">pattern が当たる位置</param>
     /// <param name="Pattern">位置に当てた pattern の最上位</param>
     /// <param name="Opaque">not か list pattern の内側の位置なら true</param>
-    private readonly record struct Candidate(CasePosition Position, IPatternOperation Pattern, bool Opaque)
+    private readonly record struct Candidate(PositionNode Node, CasePosition Position, IPatternOperation Pattern, bool Opaque)
     {
         /// <summary>pattern が後から足す case を受け取る場合の報告</summary>
-        /// <returns>受け取る集まりがあれば報告。守る位置でなく、どの集まりも受け取らないなら null</returns>
-        /// <remarks>not と list pattern の内側は受け取る範囲を確かめられないので、守る位置なら受け取るものとして扱う</remarks>
+        /// <returns>保護対象の将来の case を受理する pattern の報告か null</returns>
+        /// <remarks>別経路で共有する値の保護を含む不透明な pattern の保守的な判定</remarks>
         internal CatchAll? Report()
         {
             var pattern = Pattern;
-            var families = Position.Families();
+            var families = Position.Families(Node.Overlapping().Select(peer => peer.Position).OfType<CasePosition>());
             var family = Opaque
                 ? families.FirstOrDefault()
                 : families.FirstOrDefault(candidate => candidate.Accepts(pattern) != Acceptance.Never);
             return family is null ? null : new CatchAll(pattern.Syntax, family.Name);
+        }
+    }
+
+    /// <summary>下位の位置を暗黙に受理する pattern の判定候補</summary>
+    /// <param name="Node">pattern が当たる位置の節</param>
+    /// <param name="Pattern">位置に当てた pattern の最上位</param>
+    private readonly record struct Covering(PositionNode Node, IPatternOperation Pattern)
+    {
+        /// <summary>暗黙に受理される保護対象の位置の報告</summary>
+        /// <returns>この pattern の構文に対応付けた保護対象の型ごとの報告</returns>
+        /// <remarks>同じ値を取り出す別経路の下位位置を含む判定</remarks>
+        internal IEnumerable<CatchAll> Report()
+        {
+            var pattern = Pattern;
+            return Node.Overlapping().Prepend(Node).SelectMany(owner => owner.Children)
+                .Where(part => PatternSilence.Toward(pattern, part) != Acceptance.Never)
+                .SelectMany(part => part.ProtectedNames())
+                .Distinct()
+                .Select(name => new CatchAll(pattern.Syntax, name));
         }
     }
 }

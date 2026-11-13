@@ -122,4 +122,26 @@ public sealed class ExplicitCaseUnionTests
         await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "default:"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
+
+    /// <summary>組の入力の全体に当てる discard と束縛が、組の要素の Value を隠すときの拒否</summary>
+    [Test]
+    public async Task A_broad_arm_over_a_tuple_with_a_union_value_is_rejected()
+    {
+        var diagnostics = await RunUnion(Pets + """
+
+            internal static class Use
+            {
+                internal static int Discard(Pet pet, bool flag) => (pet.Value, flag) switch { _ => 0 };
+
+                internal static int Bound(Pet pet, bool flag) => (pet.Value, flag) switch
+                {
+                    (Cat, _) => 1,
+                    var rest => rest.Item2 ? 2 : 3,
+                };
+            }
+            """);
+
+        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "var rest"]);
+        await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
+    }
 }

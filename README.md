@@ -205,6 +205,19 @@ The input of the switch, or an element of a tuple input, is protected when its t
 A protected input is checked even when no arm names a case, so `state switch { _ => 1 }` and a `default:` label are rejected.
 A tuple switch's `default:` label reports each distinct protected family it hides, rather than choosing one tuple element.
 A position inside a case, such as the payload of `Succeeded<T>(var value)` or a property of a case, is checked only where some arm names a case of it, so a payload that the switch does not branch on may be bound or discarded.
+An arm is also rejected at its own pattern when the pattern leaves a protected position beneath it unwritten, because it accepts a case added later there.
+`_` or `var pair` over a tuple input that has a protected element, and `Done` or `Done { }` where another arm branches on the payload of `Done`, are rejected, once for each distinct protected type they hide.
+An arm that writes the position, such as `Done(var state)`, is judged at that position, and an arm that cannot match the case, such as `Skipped`, is accepted.
+Patterns name the same position when they read the same value, however they are written.
+An element of a tuple is one position whether it is written by position, by element name, or as `Item1`.
+A property that a derived type inherits or overrides is one position whether it is written on the derived type or on the base type, and `{ A.B: p }` and `{ A: { B: p } }` name the same position.
+A record's positional parameter and the property of the same name are one position when the compiler generated the record's `Deconstruct` in the same compilation.
+A property written on two unrelated derived types is one position for each type, so naming the cases through one type does not protect the other.
+An interface property and the public property that a sealed class or a struct uses to implement it are one position, in either order of writing.
+A class that is not sealed can be derived and re-implement the interface, and a public property can differ from an explicit implementation, so those properties stay separate positions, and an arm that writes one and omits an active other is rejected.
+A property that a derived type hides with `new`, a hand-written `Deconstruct`, and an extension `Deconstruct` are separate positions, so an arm that writes one and omits an active other is rejected.
+The `Deconstruct` of a record from a referenced assembly is treated the same way, even when its parameter names and a `CompilerGenerated` attribute match a property, because metadata does not show whether the compiler generated it or what it returns.
+A switch over such a record therefore has to write each position in one form, either `Lamp(Signal.Red, _)` or `{ Light: Signal.Red }`, and an arm that mixes the two forms is rejected.
 An arm is rejected when its pattern can accept a case added later, that is, `_`, `var x`, the type itself, a base type of it, `object`, a relational pattern on an enum, `not` of a case, and a property or positional pattern that names no case, alone or combined by `or` and `and`.
 Patterns that name cases are accepted, such as `A or B`, `A and { ... }`, `Settled(var at)`, and `null`.
 A closed class that contains closed classes counts at each level, so `Circle => ..., Rect.Square => ..., Rect => ...` rejects the last arm.

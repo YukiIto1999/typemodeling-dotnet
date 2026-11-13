@@ -52,6 +52,14 @@ internal sealed class CasePosition
     /// <summary>位置の case を持つ型の名前</summary>
     internal string Name => _root.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
+    /// <summary>将来の case の暗黙の受理を防ぐ保護状態</summary>
+    /// <value>入力位置か明示的な case を持つ位置なら true</value>
+    internal bool IsProtected => IsScrutinee || NamesCase;
+
+    /// <summary>この位置での明示的な case 列挙の有無</summary>
+    /// <value>いずれかの arm がこの位置の case を挙げていれば true</value>
+    private bool NamesCase => _namesMember || _tested.Any(IsCaseName);
+
     /// <summary>位置の型が閉じた case を持つなら、その位置</summary>
     /// <param name="inputType">pattern が当たる位置の型。型のない式なら null</param>
     /// <param name="union">位置が union 型の Value なら、その union 型</param>
@@ -98,13 +106,15 @@ internal sealed class CasePosition
     }
 
     /// <summary>後から足す case を受け取ってはならない集まり</summary>
-    /// <returns>守る位置なら、位置の型の集まりと、case を挙げた閉じた class の集まり。守らない位置なら空</returns>
-    /// <remarks>閉じた class の中の閉じた class は、その派生を挙げた arm があるとき、別の集まりとして数える</remarks>
-    internal ImmutableArray<CaseFamily> Families()
+    /// <param name="peers">別経路で同じ値を取り出しうる位置</param>
+    /// <returns>保護対象の位置で暗黙に受理してはならない case の集まり</returns>
+    /// <remarks>共有する値の case 列挙を含む入れ子の閉じた型の保護</remarks>
+    internal ImmutableArray<CaseFamily> Families(IEnumerable<CasePosition> peers)
     {
-        var names = _tested.Where(IsCaseName).ToArray();
+        CasePosition[] positions = [this, .. peers];
+        var names = positions.SelectMany(position => position._tested).Where(IsCaseName).ToArray();
         var families = ImmutableArray.CreateBuilder<CaseFamily>();
-        if (IsScrutinee || _namesMember || names.Length > 0)
+        if (IsScrutinee || positions.Any(position => position.NamesCase))
             families.Add(_isUnion ? CaseFamily.OfUnion(_root, _inputType) : CaseFamily.OfClosedType(_root, _inputType));
 
         families.AddRange(names

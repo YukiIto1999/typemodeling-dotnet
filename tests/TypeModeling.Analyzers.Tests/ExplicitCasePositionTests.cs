@@ -116,7 +116,7 @@ public sealed class ExplicitCasePositionTests
             }
             """);
 
-        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "var other", "_", "_", "_", "var other"]);
+        await Assert.That(Flagged(diagnostics)).IsEquivalentTo(["_", "var other", "_", "_", "_", "var other", "_"]);
         await Assert.That(CompilerErrors(diagnostics)).IsEmpty();
     }
 
