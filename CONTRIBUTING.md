@@ -53,7 +53,7 @@ ignore file はこの repository のものを明示し、別 repository の無�
 | `verify-push` | T2 | 15 分 | push の前    | `verify` と SelfAuditTests |
 | `verify-full` | T3 | なし  | 分析が必要なとき | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation と未検出 mutant の記録 |
 
-時間予算は、root の `verification-budget.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
+時間予算は、root の `tiergate.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
 push フックはこの予算で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。
 push の前には、index・作業ツリー・未追跡 file に差分を残さない。
 
