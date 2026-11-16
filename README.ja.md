@@ -304,30 +304,9 @@ await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure))
 
 閉じた階層の検査は、閉じた class の直接の派生のうち閉じた class の assembly の外にあるものと、`[JsonPolymorphic]` の型の派生のうち `[JsonDerivedType]` に登録されていないものを報告する。
 
-### analyzer の attach 検査
-
-```csharp
-using TypeModeling.Testing.Attach;
-
-var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
-    repoRoot,
-    new AnalyzerAttachmentRequirement(
-        AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD101", "TYPMOD102", "TYPMOD103" },
-        ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
-        ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
-        ProtectedDiagnosticCategories: new HashSet<string>()),
-    new ClosedTypeUsageDetector(),
-    CancellationToken.None);
-await Assert.That(violations).IsEmpty();
-```
-
-`ClosedTypeUsageDetector` は、閉じた型か union 型を使う全ての project を数える。
-
 ## 依存
 
-本体 `src/TypeModeling/` は他のライブラリに依存しない。
-`src/TypeModeling.Testing/` は、MSBuild の project を評価し、C# 14 の構文と生成 source のまま compile するために Microsoft.CodeAnalysis.CSharp 5.9.0 へ依存する。
+本体 `src/TypeModeling/` と `src/TypeModeling.Testing/` は他のライブラリに依存しない。
 
 ## アーキテクチャの標準
 

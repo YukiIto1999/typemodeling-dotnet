@@ -293,30 +293,9 @@ await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure))
 
 The closed hierarchy check reports a direct subtype of a closed class declared outside the assembly of the closed class, and a subtype of a `[JsonPolymorphic]` type that is missing from its `[JsonDerivedType]` registrations.
 
-### Analyzer attach check
-
-```csharp
-using TypeModeling.Testing.Attach;
-
-var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
-    repoRoot,
-    new AnalyzerAttachmentRequirement(
-        AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD101", "TYPMOD102", "TYPMOD103" },
-        ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
-        ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
-        ProtectedDiagnosticCategories: new HashSet<string>()),
-    new ClosedTypeUsageDetector(),
-    CancellationToken.None);
-await Assert.That(violations).IsEmpty();
-```
-
-`ClosedTypeUsageDetector` counts every project that uses a closed type or a union type.
-
 ## Dependencies
 
-The runtime `src/TypeModeling/` depends on no other library.
-`src/TypeModeling.Testing/` depends on Microsoft.CodeAnalysis.CSharp 5.9.0 to evaluate MSBuild projects and compile them with C# 14 syntax and generated sources.
+The runtime `src/TypeModeling/` and `src/TypeModeling.Testing/` depend on no other library.
 
 ## Architecture standard
 

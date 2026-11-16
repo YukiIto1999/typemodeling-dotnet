@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - The `verify` and `verify-push` time budgets are declared in `tiergate.json` at the repository root. The declaration file was renamed and its keys are unchanged.
 
+### Removed
+
+- The runtime analyzer attachment check is removed from `TypeModeling.Testing`: `AnalyzerAttachmentConformance`, `AnalyzerAttachmentCheck`, `AnalyzerAttachmentRequirement`, `IGuardedFeatureDetector`, `ClosedTypeUsageDetector`, and `GuardedTypeUsageWalk` in `TypeModeling.Testing.Attach`, with their tests. A missing, stopped, or weakened analyzer is now a build error from `TypeModeling.Analysis.props` and TYPMOD022, so no test has to build projects to find it. The closure check (`SolutionClosureConformance`) is unchanged.
+- `TypeModeling.Testing` no longer depends on Microsoft.CodeAnalysis.CSharp.
+
+### Migration
+
+1. Import `TypeModeling.Analysis.props` once from the `Directory.Build.props` that covers every project of the repository.
+2. Remove the analyzer `ProjectReference` (`OutputItemType="Analyzer"`) from every project. Keep the `ProjectReference` to the runtime library.
+3. Delete the test that calls `AnalyzerAttachmentConformance.ViolationsAsync`, with its `AnalyzerAttachmentRequirement`, its detector, and its list of expected projects. The props attach the analyzer to every C# project, so no list of projects that use closed types is needed.
+4. Build once. Fix a TYPMOD201, TYPMOD202, TYPMOD203, or TYPMOD022 error by removing the cause it names. The check judged `RunAnalyzers`, `NoWarn`, `.editorconfig`, and `#pragma` in every configuration at once; the build judges the configuration it builds, so build each configuration that you ship.
+5. A project that opts out of `Directory.Build.props` or has a nested `Directory.Build.props` that does not import its parent is not reached by the import and is not detected by the build. Import the props from its own `Directory.Build.props`.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

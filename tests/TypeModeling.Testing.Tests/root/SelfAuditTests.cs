@@ -15,22 +15,22 @@ public sealed class SelfAuditTests
         var repoRoot = RepoRoot();
         var excludedProjects = new Dictionary<string, string>(StringComparer.Ordinal);
         var closure = await SolutionClosureLoader.LoadAsync(
-            new SolutionClosureScan(
-                repoRoot,
-                "TypeModeling.slnx",
-                "Debug",
-                excludedProjects),
-            CancellationToken.None);
+            new SolutionClosureScan(repoRoot, "TypeModeling.slnx", "Debug", excludedProjects),
+            CancellationToken.None
+        );
 
         RequireNoViolations(
             "TypeModeling solution の project 棚卸し",
             SolutionClosureConformance.InventoryViolations(
                 closure,
                 SolutionClosureConformance.RepoProjectPaths(repoRoot),
-                excludedProjects));
+                excludedProjects
+            )
+        );
         RequireNoViolations(
             "TypeModeling solution の閉じた階層",
-            SolutionClosureConformance.ClosedHierarchyViolations(closure));
+            SolutionClosureConformance.ClosedHierarchyViolations(closure)
+        );
     }
 
     /// <summary>test source path を基準にした repository root の解決</summary>
@@ -38,14 +38,11 @@ public sealed class SelfAuditTests
     /// <returns>TypeModeling repository root の絶対 path</returns>
     private static string RepoRoot([CallerFilePath] string sourcePath = "")
     {
-        var testsDirectory = Path.GetDirectoryName(sourcePath) ??
-            throw new InvalidOperationException("test source directory が見つからない");
+        var testsDirectory =
+            Path.GetDirectoryName(sourcePath)
+            ?? throw new InvalidOperationException("test source directory が見つからない");
         var repoRoot = Path.GetFullPath(Path.Combine(testsDirectory, "..", "..", ".."));
-        if (File.Exists(Path.Combine(
-                repoRoot,
-                "src",
-                "TypeModeling",
-                "TypeModeling.csproj")))
+        if (File.Exists(Path.Combine(repoRoot, "src", "TypeModeling", "TypeModeling.csproj")))
         {
             return repoRoot;
         }
@@ -56,15 +53,13 @@ public sealed class SelfAuditTests
     /// <summary>自己監査 violations の空集合検証</summary>
     /// <param name="surface">検査面の表示名</param>
     /// <param name="violations">conformance engine が返した violations</param>
-    private static void RequireNoViolations(
-        string surface,
-        IReadOnlyList<string> violations)
+    private static void RequireNoViolations(string surface, IReadOnlyList<string> violations)
     {
         if (violations.Count > 0)
         {
             throw new InvalidOperationException(
-                surface + " に違反がある:\n  " +
-                string.Join("\n  ", violations));
+                surface + " に違反がある:\n  " + string.Join("\n  ", violations)
+            );
         }
     }
 }
