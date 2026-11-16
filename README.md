@@ -51,9 +51,24 @@ The build fails with an error when the analysis is missing or weakened:
 | TYPMOD202 | `RunAnalyzers` is `false`, or `RunAnalyzersDuringBuild` is `false` without `RunAnalyzers` set to `true` |
 | TYPMOD203 | The analyzer is not among the project's analyzers, for example because a `ProjectReference` or an `Analyzer` item was removed |
 | TYPMOD022 | A setting weakens a TypeModeling diagnostic (see below) |
+| TYPMOD204 | A C# project of the solution, or a C# project that a project of the solution references, does not import the props (see below) |
 
-The import does not reach a project that opts out of `Directory.Build.props` (`ImportDirectoryBuildProps` set to `false` before the SDK props or as a global property), a project whose nearest `Directory.Build.props` does not import its parent, or a project outside the directory of the `Directory.Build.props`.
-The build cannot detect such a project, so keep it free of TypeModeling types, or import the props from its own `Directory.Build.props`.
+The build judges the configuration it builds. A defect that exists only in `Release` is found when `Release` is built, and a `Release` build of any project passes these checks only if the analyzer is attached and not stopped or weakened in `Release`. Build each configuration that you ship.
+
+A project that opts out of `Directory.Build.props` (`ImportDirectoryBuildProps` set to `false` before the SDK props or as a global property), or whose nearest `Directory.Build.props` does not import its parent, is not reached by the import, and the project itself cannot detect that.
+To make the solution build detect it, add a `Directory.Solution.targets` next to the solution that imports the solution check:
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Solution.targets" />
+</Project>
+```
+
+Before it builds anything, `dotnet build` of the solution fails with TYPMOD204 and names each C# project whose `TypeModelingAnalysisState` target is missing, because only the props define that target.
+The check starts at the C# projects that the solution lists and follows their `ProjectReference` items, in each target framework that a project builds, through every project that the props reach.
+A project that the solution does not list but that a listed project references, directly or through other projects, is therefore checked too, and the error names it with the project that references it.
+A reference that only attaches an analyzer (`OutputItemType="Analyzer"`) is not followed.
+A build of a single `.csproj` instead of the solution is not checked, and neither is a project that no listed project references.
 Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
 
 ## Usage

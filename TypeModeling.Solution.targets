@@ -1,0 +1,38 @@
+<Project>
+  <!--
+    TypeModeling.Analysis.props の取り込みが届かない C# project を、solution の build の失敗にする。
+    Directory.Build.props の取り込みは、ImportDirectoryBuildProps を false にした project や、
+    親を import しない入れ子の Directory.Build.props の下の project には届かず、その project 自身は何も検出できない。
+    solution の root の Directory.Solution.targets から、この checkout の TypeModeling.Solution.targets を import する。
+
+      <Project>
+        <Import Project="../typemodeling-dotnet/TypeModeling.Solution.targets" />
+      </Project>
+
+    solution の build は、全ての project を build する前に、各 C# project が TypeModelingAnalysisState の target を持つかを確かめる。
+    この target は TypeModeling.Analysis.props だけが定義するので、無い project は取り込みが届いていない。
+    solution に載せず、載っている project が ProjectReference で参照して推移的に build される project も、同じ target で確かめる。
+    取り込みが届いた project の target が、参照先を同じ target でたどるので、届いていない project は、solution に載っていても参照されるだけでも挙げる。
+  -->
+  <Target Name="RequireTypeModelingAnalysisReach" BeforeTargets="Build;Rebuild">
+    <ItemGroup>
+      <_TypeModelingSolutionProject Include="@(ProjectReference->'%(FullPath)')" Condition="'%(Extension)' == '.csproj'" />
+    </ItemGroup>
+    <MSBuild Projects="@(_TypeModelingSolutionProject)"
+             Targets="TypeModelingAnalysisState"
+             SkipNonexistentTargets="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_TypeModelingProjectState" />
+    </MSBuild>
+    <ItemGroup>
+      <_TypeModelingReachedProject Include="@(_TypeModelingProjectState->WithMetadataValue('Reached', 'true')->'%(FullPath)')" />
+      <_TypeModelingUnreachedProject Include="@(_TypeModelingSolutionProject)" Exclude="@(_TypeModelingReachedProject)" />
+      <_TypeModelingUnreachedReference Include="@(_TypeModelingProjectState->WithMetadataValue('Reached', 'false'))" />
+    </ItemGroup>
+    <Error Code="TYPMOD204"
+           Condition="'@(_TypeModelingUnreachedProject)' != ''"
+           Text="TypeModeling.Analysis.props が届いていない project がある: @(_TypeModelingUnreachedProject, ', ')。ImportDirectoryBuildProps を false にせず、親を import しない Directory.Build.props の下に置かない。" />
+    <Error Code="TYPMOD204"
+           Condition="'@(_TypeModelingUnreachedReference)' != ''"
+           Text="solution の project が ProjectReference で参照する project に、TypeModeling.Analysis.props が届いていない: @(_TypeModelingUnreachedReference->'%(FullPath)(参照元 %(ReferencedBy))', ', ')。参照される project も、ImportDirectoryBuildProps を false にせず、親を import しない Directory.Build.props の下に置かない。" />
+  </Target>
+</Project>

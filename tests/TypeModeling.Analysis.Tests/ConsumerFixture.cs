@@ -11,8 +11,6 @@ internal sealed partial class ConsumerFixture : IDisposable
     /// <summary>fixture の build に共通の引数。node と compiler server を残さず、audit の通信を避ける</summary>
     private static readonly string[] BuildArguments =
     [
-        "build",
-        "Consumer.csproj",
         "-nologo",
         "-v:m",
         "-nodeReuse:false",
@@ -141,29 +139,8 @@ internal sealed partial class ConsumerFixture : IDisposable
     /// <summary>利用側の project を build する</summary>
     /// <param name="arguments">dotnet build に足す引数</param>
     /// <returns>終了 code と、build が報告した error</returns>
-    internal async Task<BuildResult> BuildAsync(params string[] arguments)
-    {
-        var start = new ProcessStartInfo(DotnetExecutable())
-        {
-            WorkingDirectory = Path.Combine(_root, "consumer"),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        foreach (var argument in BuildArguments.Concat(arguments))
-            start.ArgumentList.Add(argument);
-
-        using var process =
-            Process.Start(start) ?? throw new InvalidOperationException("dotnet を起動できない");
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(BuildTimeout);
-        await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-        var text = await output.ConfigureAwait(false) + await error.ConfigureAwait(false);
-        return new BuildResult(
-            process.ExitCode,
-            ErrorPattern().Matches(text).Select(match => match.Value.Trim()).Distinct().ToArray()
-        );
-    }
+    internal Task<BuildResult> BuildAsync(params string[] arguments) =>
+        RunAsync(Path.Combine(_root, "consumer"), "Consumer.csproj", arguments);
 
     /// <summary>一時 repository の削除</summary>
     public void Dispose() => Directory.Delete(_root, recursive: true);

@@ -51,9 +51,24 @@ analysis が欠けるか弱められると、build は error で失敗する。
 | TYPMOD202 | `RunAnalyzers` が `false` か、`RunAnalyzers` が `true` でないまま `RunAnalyzersDuringBuild` が `false` である |
 | TYPMOD203 | analyzer が project の analyzer に含まれない。たとえば `ProjectReference` や `Analyzer` の item を外している |
 | TYPMOD022 | TypeModeling の診断を弱める設定がある(下の節) |
+| TYPMOD204 | solution の C# project か、solution の project が参照する C# project が props を取り込んでいない(下の説明) |
 
-この import は、`Directory.Build.props` を取り込まない project(SDK の props より前か global property で `ImportDirectoryBuildProps` を `false` にしたもの)、最も近い `Directory.Build.props` が親を import しない project、`Directory.Build.props` の directory の外にある project には届かない。
-build はそうした project を検出できないので、TypeModeling の型を使わせないか、その project 自身の `Directory.Build.props` で props を import する。
+build は、build する構成だけを判定する。`Release` だけにある欠陥は、`Release` を build した時に見つかる。いずれの project の `Release` の build も、`Release` で analyzer が attach され、止められず、弱められていない場合にだけ通る。出荷する構成は、それぞれ build する。
+
+`Directory.Build.props` を取り込まない project(SDK の props より前か global property で `ImportDirectoryBuildProps` を `false` にしたもの)や、最も近い `Directory.Build.props` が親を import しない project には、この import が届かず、その project 自身は検出できない。
+solution の build で検出するには、solution の隣に `Directory.Solution.targets` を置いて、solution の検査を import する。
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Solution.targets" />
+</Project>
+```
+
+solution の `dotnet build` は、何かを build する前に、props だけが定義する `TypeModelingAnalysisState` の target を持たない C# project を挙げて、TYPMOD204 で失敗する。
+検査は solution に載っている C# project から始め、取り込みが届いた project の `ProjectReference` を、project が build する target framework ごとにたどる。
+solution に載せていなくても、載っている project が直接または他の project を経て参照する project は検査され、エラーはその project を参照元と合わせて挙げる。
+analyzer だけを届ける参照(`OutputItemType="Analyzer"`)はたどらない。
+solution でなく単独の `.csproj` を build した場合と、載っている project のどれからも参照されない project は検査されない。
 arch test の project は [TypeModeling.Testing](./src/TypeModeling.Testing/) も参照する。
 
 ## 使い方

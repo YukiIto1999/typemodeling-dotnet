@@ -26,6 +26,42 @@
            Text="TypeModeling の analyzer project '$(TypeModelingAnalyzerProject)' が無い。TypeModeling の checkout を欠けなく置く。" />
   </Target>
 
+  <!--
+    solution の build が、この props の取り込みが届いた project と、その project が ProjectReference でたどる project を確かめるための target。TypeModeling.Solution.targets が呼ぶ。
+    この project を Reached=true で返し、ProjectReference の先で取り込みが届いた project を、たどった先まで Reached=true で返す。
+    取り込みが届いていない参照先は、この target を持たないので何も返さない。その project を Reached=false と ReferencedBy で返し、その先はたどらない。
+    複数の framework を build する project は、framework ごとの評価でだけ現れる参照も、framework ごとにたどる。
+    analyzer だけを届ける参照(OutputItemType が Analyzer)は、閉包に入れないので、たどらない。
+  -->
+  <Target Name="TypeModelingAnalysisState" Returns="@(_TypeModelingState)">
+    <ItemGroup>
+      <_TypeModelingState Include="$(MSBuildProjectFullPath)" Reached="true" />
+      <_TypeModelingTargetFramework Include="$(TargetFrameworks)" Condition="'$(TargetFramework)' == ''" />
+      <_TypeModelingReference Include="@(ProjectReference->WithMetadataValue('Extension', '.csproj')->WithoutMetadataValue('OutputItemType', 'Analyzer')->'%(FullPath)')" />
+    </ItemGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="TypeModelingAnalysisState"
+             Properties="TargetFramework=%(_TypeModelingTargetFramework.Identity)"
+             Condition="'@(_TypeModelingTargetFramework)' != ''">
+      <Output TaskParameter="TargetOutputs" ItemName="_TypeModelingState" />
+    </MSBuild>
+    <MSBuild Projects="@(_TypeModelingReference)"
+             Targets="TypeModelingAnalysisState"
+             RemoveProperties="TargetFramework"
+             SkipNonexistentTargets="true"
+             Condition="'@(_TypeModelingReference)' != ''">
+      <Output TaskParameter="TargetOutputs" ItemName="_TypeModelingReferenceState" />
+    </MSBuild>
+    <ItemGroup>
+      <_TypeModelingReachedReference Include="@(_TypeModelingReferenceState->WithMetadataValue('Reached', 'true'))" />
+      <_TypeModelingState Include="@(_TypeModelingReferenceState)" />
+      <_TypeModelingState Include="@(_TypeModelingReference)" Exclude="@(_TypeModelingReachedReference)">
+        <Reached>false</Reached>
+        <ReferencedBy>$(MSBuildProjectFullPath)</ReferencedBy>
+      </_TypeModelingState>
+    </ItemGroup>
+  </Target>
+
   <Target Name="RequireTypeModelingAnalysis"
           BeforeTargets="CoreCompile"
           Condition="'$(_TypeModelingAnalysisApplies)' == 'true'">
