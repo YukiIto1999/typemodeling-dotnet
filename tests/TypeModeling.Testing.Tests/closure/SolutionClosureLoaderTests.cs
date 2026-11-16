@@ -70,4 +70,37 @@ public sealed class SolutionClosureLoaderTests
             .WithMessageContaining(
                 "App/App.csproj: inventoryが静的に解決できないProjectReference: $(LibraryProject)");
     }
+
+    /// <summary>contract-generator が出す形の project の、Directory.Build.props の property による参照を閉包と台帳の検査が読むこと</summary>
+    [Test]
+    public async Task A_project_reference_through_a_property_of_Directory_Build_props_is_resolved()
+    {
+        using var fixture = new TemporarySolutionFixture();
+        fixture.UseGeneratedContractShape();
+        var excluded = new Dictionary<string, string>(StringComparer.Ordinal);
+        var scan = new SolutionClosureScan(
+            fixture.RepoRoot,
+            fixture.SolutionFileName,
+            "Debug",
+            excluded);
+
+        var closure = await SolutionClosureLoader.LoadAsync(
+            scan,
+            CancellationToken.None);
+
+        await Assert.That(closure.ExpectedProjectPaths).IsEquivalentTo([
+            "../external/External.csproj",
+            "App/App.csproj",
+            "generated/provider/Contract.Provider.csproj",
+            "generated/types/Contract.Types.csproj",
+        ]);
+        await Assert.That(closure.Projects.Select(project => project.ProjectPath)).IsEquivalentTo(
+            closure.ExpectedProjectPaths);
+        await Assert.That(SolutionClosureConformance.InventoryViolations(
+                closure,
+                SolutionClosureConformance.RepoProjectPaths(fixture.RepoRoot),
+                excluded))
+            .IsEmpty();
+        await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure)).IsEmpty();
+    }
 }

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>TypeModeling.Analysis.Tests</AssemblyName>
+    <RootNamespace>TypeModeling.Analysis.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- テスト名は仕様を表す一文。下線区切りを許し CA1707 を test だけ除外する。 -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+</Project>

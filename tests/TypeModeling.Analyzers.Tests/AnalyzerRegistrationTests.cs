@@ -7,6 +7,7 @@ using TUnit.Core;
 using TypeModeling.Analyzers.Diagnostics.ClosedEnum;
 using TypeModeling.Analyzers.Diagnostics.ClosedType;
 using TypeModeling.Analyzers.Diagnostics.ExplicitCase;
+using TypeModeling.Analyzers.Diagnostics.Guard;
 using TypeModeling.Analyzers.Diagnostics.MustUse;
 using TypeModeling.Analyzers.Diagnostics.ResultUsage;
 using TypeModeling.Analyzers.Diagnostics.UnionType;
@@ -26,6 +27,7 @@ public sealed class AnalyzerRegistrationTests
         [
             new ClosedEnumAnalyzer(),
             new ClosedTypeDeclarationAnalyzer(),
+            new DiagnosticGuardAnalyzer(),
             new ExplicitCaseAnalyzer(),
             new MustUseAnalyzer(),
             new ResultUsageAnalyzer(),

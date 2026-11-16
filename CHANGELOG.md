@@ -7,9 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `TypeModeling.Analysis.props` attaches the analyzer to every C# project with one import from the consumer's `Directory.Build.props`, so a project no longer declares an analyzer reference of its own. The build fails with TYPMOD201 when the analyzer project is missing from the checkout, with TYPMOD202 when `RunAnalyzers` or `RunAnalyzersDuringBuild` stops the analyzers, and with TYPMOD203 when the analyzer is not among the project's analyzers.
+- TYPMOD022 reports a setting that lowers or hides a TypeModeling diagnostic: a lower severity in `.editorconfig` or a global config, `NoWarn`, an unrestored `#pragma warning disable`, and an assembly-wide `SuppressMessage`. It is `NotConfigurable`, so `NoWarn`, `.editorconfig`, a ruleset, and `#pragma` cannot suppress it.
+- `TypeModeling.Solution.targets` fails a solution build with TYPMOD204 before it builds anything, and names every C# project that the props do not reach: a project of the solution that sets `ImportDirectoryBuildProps` to `false`, a project under a nested `Directory.Build.props` that does not import its parent, and every project when `ImportDirectoryBuildProps=false` is a global property. The check starts at the C# projects that the solution lists and follows their `ProjectReference` items, in each target framework that a project builds, through every project that the props reach, so a project that the solution does not list but that a listed project references, directly or through other projects, is checked too, and the error names it with the project that references it. A reference that only attaches an analyzer (`OutputItemType="Analyzer"`) is not followed. The solution imports it from a `Directory.Solution.targets`. A build of a single `.csproj` and a project that no listed project references are not checked.
+- `TypeModeling.Analysis.Tests` builds repositories that import the props with each weakening in turn, and checks that the build fails with the diagnostic or error above. It runs in `verify-push` and `verify-full`.
+
 ### Changed
 
 - The `verify` and `verify-push` time budgets are declared in `tiergate.json` at the repository root. The declaration file was renamed and its keys are unchanged.
+
+### Removed
+
+- The runtime analyzer attachment check is removed from `TypeModeling.Testing`: `AnalyzerAttachmentConformance`, `AnalyzerAttachmentCheck`, `AnalyzerAttachmentRequirement`, `IGuardedFeatureDetector`, `ClosedTypeUsageDetector`, and `GuardedTypeUsageWalk` in `TypeModeling.Testing.Attach`, with their tests. A missing, stopped, or weakened analyzer is now a build error from `TypeModeling.Analysis.props` and TYPMOD022, so no test has to build projects to find it. The closure check (`SolutionClosureConformance`) is unchanged.
+- `TypeModeling.Testing` no longer depends on Microsoft.CodeAnalysis.CSharp.
+
+### Fixed
+
+- `SolutionClosureLoader` resolves a `$(Name)` in the `Include` of a `ProjectReference` with the value that MSBuild evaluates for that property in the project, so `SolutionClosureConformance` can read a project that contract-generator emits, whose `ProjectReference Include="$(TypeModelingProjectPath)"` it used to reject as statically unresolvable. A property with an empty value, such as an undefined one, and an expression that is not a plain property are still rejected before the build.
+
+### Migration
+
+1. Import `TypeModeling.Analysis.props` once from the `Directory.Build.props` that covers every project of the repository.
+2. Remove the analyzer `ProjectReference` (`OutputItemType="Analyzer"`) from every project. Keep the `ProjectReference` to the runtime library.
+3. Delete the test that calls `AnalyzerAttachmentConformance.ViolationsAsync`, with its `AnalyzerAttachmentRequirement`, its detector, and its list of expected projects. The props attach the analyzer to every C# project, so no list of projects that use closed types is needed.
+4. Build once. Fix a TYPMOD201, TYPMOD202, TYPMOD203, or TYPMOD022 error by removing the cause it names. The check judged `RunAnalyzers`, `NoWarn`, `.editorconfig`, and `#pragma` in every configuration at once; the build judges the configuration it builds, so build each configuration that you ship.
+5. A project that opts out of `Directory.Build.props` or has a nested `Directory.Build.props` that does not import its parent is not reached by the import. Add a `Directory.Solution.targets` that imports `TypeModeling.Solution.targets` so that the solution build fails with TYPMOD204 for such a project.
 
 ## [0.3.0] - 2026-11-14
 

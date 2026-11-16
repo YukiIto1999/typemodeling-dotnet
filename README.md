@@ -22,18 +22,53 @@ This README is for developers who use the library in their projects.
 
 ## Installation
 
-Check out the repository into the same workspace and reference it by a relative path.
+Check out the repository into the same workspace.
 Pin the version with a `vX.Y.Z` tag on `main`.
+
+Import the analysis props once, from the `Directory.Build.props` that covers every project of the repository:
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Analysis.props" />
+</Project>
+```
+
+The import attaches the analyzer to every C# project under that `Directory.Build.props`, so no project declares an analyzer reference of its own.
+Exhaustiveness, generation, and every diagnostic run in the analyzer.
+A project that uses the library references the runtime library as usual:
 
 ```xml
 <ItemGroup>
   <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling/TypeModeling.csproj" />
-  <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj"
-                    OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
 
-Every project that declares or matches closed types, unions, or results attaches the analyzer, because exhaustiveness and generation run there.
+The build fails with an error when the analysis is missing or weakened:
+
+| ID | Cause |
+|---|---|
+| TYPMOD201 | The analyzer project is not in the checkout |
+| TYPMOD202 | `RunAnalyzers` is `false`, or `RunAnalyzersDuringBuild` is `false` without `RunAnalyzers` set to `true` |
+| TYPMOD203 | The analyzer is not among the project's analyzers, for example because a `ProjectReference` or an `Analyzer` item was removed |
+| TYPMOD022 | A setting weakens a TypeModeling diagnostic (see below) |
+| TYPMOD204 | A C# project of the solution, or a C# project that a project of the solution references, does not import the props (see below) |
+
+The build judges the configuration it builds. A defect that exists only in `Release` is found when `Release` is built, and a `Release` build of any project passes these checks only if the analyzer is attached and not stopped or weakened in `Release`. Build each configuration that you ship.
+
+A project that opts out of `Directory.Build.props` (`ImportDirectoryBuildProps` set to `false` before the SDK props or as a global property), or whose nearest `Directory.Build.props` does not import its parent, is not reached by the import, and the project itself cannot detect that.
+To make the solution build detect it, add a `Directory.Solution.targets` next to the solution that imports the solution check:
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Solution.targets" />
+</Project>
+```
+
+Before it builds anything, `dotnet build` of the solution fails with TYPMOD204 and names each C# project whose `TypeModelingAnalysisState` target is missing, because only the props define that target.
+The check starts at the C# projects that the solution lists and follows their `ProjectReference` items, in each target framework that a project builds, through every project that the props reach.
+A project that the solution does not list but that a listed project references, directly or through other projects, is therefore checked too, and the error names it with the project that references it.
+A reference that only attaches an analyzer (`OutputItemType="Analyzer"`) is not followed.
+A build of a single `.csproj` instead of the solution is not checked, and neither is a project that no listed project references.
 Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
 
 ## Usage
@@ -186,8 +221,25 @@ The generator adds a private constructor and a `Create` method that returns the 
 | TYPMOD019 | Error | A conversion to a closed enum comes from a constant of a member | Closed enums |
 | TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
 | TYPMOD021 | Error, off by default | A switch over a closed type or a union `Value` names its cases and has no arm that accepts a case added later | None |
+| TYPMOD022 | Error | No setting lowers the severity of a TypeModeling diagnostic or suppresses it | None |
 
 The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.
+
+### Weakened diagnostics
+
+TYPMOD022 reports a setting that lowers a TypeModeling diagnostic below its default severity or hides it, so a build cannot pass by switching a diagnostic off.
+Settings that cannot take effect, such as a wildcard like `dotnet_diagnostic.TYPMOD*.severity`, are not reported, and the diagnostics they name stay errors.
+The diagnostic is `NotConfigurable`, so `NoWarn`, `.editorconfig`, a ruleset, and `#pragma` cannot suppress it.
+It reports these settings:
+
+- `dotnet_diagnostic.<id>.severity` in an `.editorconfig` or a global config that lowers the diagnostic, for example to `none`, `silent`, `suggestion`, or `warning` for an error.
+- `dotnet_analyzer_diagnostic.severity` or `dotnet_analyzer_diagnostic.category-TypeModeling.severity` set to `none`, `silent`, or `suggestion`.
+- `NoWarn` or another compiler setting that suppresses or lowers a diagnostic.
+- A `#pragma warning disable` of a TypeModeling diagnostic, or a bare `#pragma warning disable`, without a `restore` in the same file.
+- An assembly-wide `SuppressMessage` of a TypeModeling diagnostic.
+
+TYPMOD021 is off by default, so it is not guarded.
+A `SuppressMessage` at assembly scope that names TYPMOD022 itself suppresses even this diagnostic, because the compiler applies it to every diagnostic.
 
 ### Explicit cases
 
@@ -256,30 +308,13 @@ await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure))
 
 The closed hierarchy check reports a direct subtype of a closed class declared outside the assembly of the closed class, and a subtype of a `[JsonPolymorphic]` type that is missing from its `[JsonDerivedType]` registrations.
 
-### Analyzer attach check
-
-```csharp
-using TypeModeling.Testing.Attach;
-
-var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
-    repoRoot,
-    new AnalyzerAttachmentRequirement(
-        AnalyzerProjectPath: "vendor/typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-        ProtectedDiagnosticIds: new HashSet<string> { "TYPMOD101", "TYPMOD102", "TYPMOD103" },
-        ProtectedDiagnosticPrefixes: new HashSet<string> { "TYPMOD" },
-        ExpectedProjectPaths: new HashSet<string> { "src/App.Domain/App.Domain.csproj" },
-        ProtectedDiagnosticCategories: new HashSet<string>()),
-    new ClosedTypeUsageDetector(),
-    CancellationToken.None);
-await Assert.That(violations).IsEmpty();
-```
-
-`ClosedTypeUsageDetector` counts every project that uses a closed type or a union type.
+The loader reads the `ProjectReference` items that each project file declares and replaces each `$(Name)` in an `Include` with the value that MSBuild evaluates for that property in the project.
+A reference through a property that a `Directory.Build.props` sets, such as the `$(TypeModelingProjectPath)` in a project that contract-generator emits, is therefore part of the closure.
+The loader rejects a property with an empty value and an expression that is not a plain property, because the closure would miss a project.
 
 ## Dependencies
 
-The runtime `src/TypeModeling/` depends on no other library.
-`src/TypeModeling.Testing/` depends on Microsoft.CodeAnalysis.CSharp 5.9.0 to evaluate MSBuild projects and compile them with C# 14 syntax and generated sources.
+The runtime `src/TypeModeling/` and `src/TypeModeling.Testing/` depend on no other library.
 
 ## Architecture standard
 

@@ -1,0 +1,4 @@
+<Project>
+  <!-- この repository の solution にも、利用側と同じ届かない project の検出を適用する -->
+  <Import Project="TypeModeling.Solution.targets" />
+</Project>

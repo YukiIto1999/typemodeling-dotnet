@@ -1,7 +1,7 @@
 namespace TypeModeling.Testing.Tests.Closure;
 
 /// <summary>一時ディレクトリに構築する最小の推移 ProjectReference solution</summary>
-internal sealed class TemporarySolutionFixture : IDisposable
+internal sealed partial class TemporarySolutionFixture : IDisposable
 {
     private const string FixtureSolutionFileName = "Fixture.slnx";
 
@@ -120,6 +120,55 @@ internal sealed class TemporarySolutionFixture : IDisposable
         File.WriteAllText(
             Path.Combine(RepoRoot, "App", "AppType.cs"),
             "this source does not compile");
+    }
+
+    /// <summary>App が、App.csproj に書かず import した props から analyzer だけを届ける参照を足す変更。props の取り込みの形</summary>
+    internal void UseAnalyzerOnlyReferenceFromImportedProps() =>
+        ImportReferenceFromProps(
+            """<ProjectReference Include="../../external/Companion.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />""",
+            "Companion");
+
+    /// <summary>App が、App.csproj に書かず import した props から通常の参照を足す変更。宣言された graph に無い runtime の参照の漏れの形</summary>
+    internal void UseRuntimeReferenceFromImportedProps() =>
+        ImportReferenceFromProps(
+            """<ProjectReference Include="../../external/Companion.csproj" />""",
+            "Companion");
+
+    /// <summary>props から足す参照と、その先の project の書き込み</summary>
+    /// <param name="reference">props に書く ProjectReference</param>
+    /// <param name="targetName">参照先の project 名</param>
+    private void ImportReferenceFromProps(string reference, string targetName)
+    {
+        File.WriteAllText(
+            Path.Combine(RepoRoot, "App", "Added.props"),
+            $"<Project><ItemGroup>{reference}</ItemGroup></Project>");
+        File.WriteAllText(
+            Path.Combine(RepoRoot, "App", "App.csproj"),
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <AssemblyName>Fixture.App</AssemblyName>
+              </PropertyGroup>
+              <Import Project="Added.props" />
+              <ItemGroup>
+                <ProjectReference Include="../Library/Library.csproj" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(
+            Path.Combine(_workspaceRoot, "external", targetName + ".csproj"),
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <AssemblyName>Fixture.Companion</AssemblyName>
+              </PropertyGroup>
+            </Project>
+            """);
+        File.WriteAllText(
+            Path.Combine(_workspaceRoot, "external", targetName + "Type.cs"),
+            "namespace Fixture.Companion; public class CompanionType;");
     }
 
     /// <summary>一時 solution fixture の削除</summary>
