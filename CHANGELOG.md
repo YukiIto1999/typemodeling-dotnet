@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The runtime analyzer attachment check is removed from `TypeModeling.Testing`: `AnalyzerAttachmentConformance`, `AnalyzerAttachmentCheck`, `AnalyzerAttachmentRequirement`, `IGuardedFeatureDetector`, `ClosedTypeUsageDetector`, and `GuardedTypeUsageWalk` in `TypeModeling.Testing.Attach`, with their tests. A missing, stopped, or weakened analyzer is now a build error from `TypeModeling.Analysis.props` and TYPMOD022, so no test has to build projects to find it. The closure check (`SolutionClosureConformance`) is unchanged.
 - `TypeModeling.Testing` no longer depends on Microsoft.CodeAnalysis.CSharp.
 
+### Fixed
+
+- `SolutionClosureLoader` resolves a `$(Name)` in the `Include` of a `ProjectReference` with the value that MSBuild evaluates for that property in the project, so `SolutionClosureConformance` can read a project that contract-generator emits, whose `ProjectReference Include="$(TypeModelingProjectPath)"` it used to reject as statically unresolvable. A property with an empty value, such as an undefined one, and an expression that is not a plain property are still rejected before the build.
+
 ### Migration
 
 1. Import `TypeModeling.Analysis.props` once from the `Directory.Build.props` that covers every project of the repository.

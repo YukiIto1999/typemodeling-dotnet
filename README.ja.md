@@ -319,6 +319,10 @@ await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure))
 
 閉じた階層の検査は、閉じた class の直接の派生のうち閉じた class の assembly の外にあるものと、`[JsonPolymorphic]` の型の派生のうち `[JsonDerivedType]` に登録されていないものを報告する。
 
+loader は、各 project の file に書かれた `ProjectReference` を読み、`Include` の `$(Name)` を、その project で MSBuild が評価した property の値に置き換える。
+`Directory.Build.props` が設定する property を使う参照も閉包に入り、contract-generator が出す project の `$(TypeModelingProjectPath)` がそれに当たる。
+値が空の property と、単純な property でない式は、閉包から project が漏れるので拒否する。
+
 ## 依存
 
 本体 `src/TypeModeling/` と `src/TypeModeling.Testing/` は他のライブラリに依存しない。

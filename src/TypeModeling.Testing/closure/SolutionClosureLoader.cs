@@ -14,9 +14,12 @@ public static class SolutionClosureLoader
     {
         cancellationToken.ThrowIfCancellationRequested();
         var repoRoot = Path.GetFullPath(scan.RepoRoot);
-        var expectedProjectPaths = SolutionBuildGraph.DeclaredProjectPaths(
-            repoRoot,
-            scan.SolutionFileName);
+        var expectedProjectPaths = await SolutionBuildGraph.DeclaredProjectPathsAsync(
+                repoRoot,
+                scan.SolutionFileName,
+                scan.Configuration,
+                cancellationToken)
+            .ConfigureAwait(false);
         var outputRoot = Path.Combine(
             Path.GetTempPath(),
             "typemodeling-solution-closure-" + Guid.NewGuid().ToString("N"));

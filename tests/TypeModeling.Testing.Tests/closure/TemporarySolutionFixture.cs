@@ -1,7 +1,7 @@
 namespace TypeModeling.Testing.Tests.Closure;
 
 /// <summary>一時ディレクトリに構築する最小の推移 ProjectReference solution</summary>
-internal sealed class TemporarySolutionFixture : IDisposable
+internal sealed partial class TemporarySolutionFixture : IDisposable
 {
     private const string FixtureSolutionFileName = "Fixture.slnx";
 

@@ -308,6 +308,10 @@ await Assert.That(SolutionClosureConformance.ClosedHierarchyViolations(closure))
 
 The closed hierarchy check reports a direct subtype of a closed class declared outside the assembly of the closed class, and a subtype of a `[JsonPolymorphic]` type that is missing from its `[JsonDerivedType]` registrations.
 
+The loader reads the `ProjectReference` items that each project file declares and replaces each `$(Name)` in an `Include` with the value that MSBuild evaluates for that property in the project.
+A reference through a property that a `Directory.Build.props` sets, such as the `$(TypeModelingProjectPath)` in a project that contract-generator emits, is therefore part of the closure.
+The loader rejects a property with an empty value and an expression that is not a plain property, because the closure would miss a project.
+
 ## Dependencies
 
 The runtime `src/TypeModeling/` and `src/TypeModeling.Testing/` depend on no other library.
