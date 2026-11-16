@@ -22,18 +22,38 @@ TypeModeling は、C# 15 以降の型機能を同じ形で提供し、Rust と F
 
 ## 取り込み
 
-同一 workspace に checkout し、相対参照で取り込む。
+同一 workspace に checkout する。
 バージョンは `main` の `vX.Y.Z` タグで指す。
+
+repository の全ての project を覆う `Directory.Build.props` から、analysis props を 1 か所で import する。
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Analysis.props" />
+</Project>
+```
+
+この import は、その `Directory.Build.props` の下にある全ての C# project に analyzer を届けるので、project ごとに analyzer への参照を書かない。
+網羅の判定、生成、全ての診断は analyzer で動く。
+ライブラリを使う project は、実行時のライブラリを従来どおり参照する。
 
 ```xml
 <ItemGroup>
   <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling/TypeModeling.csproj" />
-  <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj"
-                    OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
 
-網羅の判定と生成は analyzer で動くので、閉じた型、union、結果を宣言または照合する全ての project が analyzer を attach する。
+analysis が欠けるか弱められると、build は error で失敗する。
+
+| ID | 原因 |
+|---|---|
+| TYPMOD201 | analyzer の project が checkout に無い |
+| TYPMOD202 | `RunAnalyzers` が `false` か、`RunAnalyzers` が `true` でないまま `RunAnalyzersDuringBuild` が `false` である |
+| TYPMOD203 | analyzer が project の analyzer に含まれない。たとえば `ProjectReference` や `Analyzer` の item を外している |
+| TYPMOD022 | TypeModeling の診断を弱める設定がある(下の節) |
+
+この import は、`Directory.Build.props` を取り込まない project(SDK の props より前か global property で `ImportDirectoryBuildProps` を `false` にしたもの)、最も近い `Directory.Build.props` が親を import しない project、`Directory.Build.props` の directory の外にある project には届かない。
+build はそうした project を検出できないので、TypeModeling の型を使わせないか、その project 自身の `Directory.Build.props` で props を import する。
 arch test の project は [TypeModeling.Testing](./src/TypeModeling.Testing/) も参照する。
 
 ## 使い方
@@ -191,8 +211,26 @@ generator が private のコンストラクタと `Parse` の結果を返す `Cr
 | TYPMOD019 | Error | 閉じた enum への変換は member に当たる定数から行う | closed enum |
 | TYPMOD020 | Error | 閉じた enum を返す演算は定数どうしで member を作る | closed enum |
 | TYPMOD021 | Error(既定で無効) | 閉じた型か union の `Value` への switch は case を一つずつ挙げ、後から足す case を受け取る arm を置かない | なし |
+| TYPMOD022 | Error | TypeModeling の診断の重大度を下げる設定や、診断を抑止する設定を置かない | なし |
 
 抑止の TYPMOD101、TYPMOD102、TYPMOD103 は、C# 15 が網羅と判定する switch 式から CS8509、CS8524、CS8846 を外す。
+
+### 弱められた診断
+
+TYPMOD022 は、TypeModeling の診断を既定の重大度より下げる設定や、診断を隠す設定を報告する。
+診断を切って build を通すことはできない。
+compiler が解釈しないので効かない設定、たとえば `dotnet_diagnostic.TYPMOD*.severity` の wildcard は報告せず、それが指す診断は error のままである。
+この診断は `NotConfigurable` なので、`NoWarn`、`.editorconfig`、ruleset、`#pragma` では抑止できない。
+次の設定を報告する。
+
+- `.editorconfig` や global config の `dotnet_diagnostic.<id>.severity` が診断を下げる設定。たとえば error の診断を `none`、`silent`、`suggestion`、`warning` にする。
+- `dotnet_analyzer_diagnostic.severity` と `dotnet_analyzer_diagnostic.category-TypeModeling.severity` を `none`、`silent`、`suggestion` にする設定。
+- 診断を抑止するか下げる `NoWarn` などの compiler の設定。
+- 同じ file の中で `restore` しない、TypeModeling の診断の `#pragma warning disable` と、診断を指定しない `#pragma warning disable`。
+- TypeModeling の診断を assembly 全体で抑止する `SuppressMessage`。
+
+既定で無効な TYPMOD021 は守らない。
+assembly 全体を対象にして TYPMOD022 自身を挙げる `SuppressMessage` は、compiler が全ての診断に適用するので、この診断も抑止する。
 
 ### case の明示
 

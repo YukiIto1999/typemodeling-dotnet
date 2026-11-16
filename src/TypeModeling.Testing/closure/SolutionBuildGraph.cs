@@ -25,7 +25,8 @@ internal static class SolutionBuildGraph
             var projectDirectory = Path.GetDirectoryName(projectPath) ?? "";
             var declaredReferences = XDocument.Load(Path.Combine(repoRoot, projectPath))
                 .Descendants()
-                .Where(element => element.Name.LocalName == "ProjectReference")
+                .Where(element => element.Name.LocalName == "ProjectReference"
+                    && element.Attribute("OutputItemType")?.Value != "Analyzer")
                 .Select(element => element.Attribute("Include")?.Value)
                 .Where(include => !string.IsNullOrWhiteSpace(include))
                 .Cast<string>();

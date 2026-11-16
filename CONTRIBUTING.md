@@ -50,8 +50,8 @@ ignore file はこの repository のものを明示し、別 repository の無�
 | 入口          | 段 | 予算  | 実行する時点 | 中身                                                                                                                                         |
 | ------------- | -- | ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `verify`      | T1 | 2 分  | commit の前  | analyzer の警告をエラー扱いにした build(S3776 の認知的複雑度 15 を含む)、TypeModeling.Tests、TypeModeling.Analyzers.Tests                 |
-| `verify-push` | T2 | 15 分 | push の前    | `verify` と SelfAuditTests |
-| `verify-full` | T3 | なし  | 分析が必要なとき | `verify`、TypeModeling.Testing.Tests の全件、三つの source project 全量の mutation と未検出 mutant の記録 |
+| `verify-push` | T2 | 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling.Analysis.Tests(利用側を模した repository の build で、props の取り込みと診断を弱める設定の拒否を確かめる) |
+| `verify-full` | T3 | なし  | 分析が必要なとき | `verify`、TypeModeling.Testing.Tests の全件、TypeModeling.Analysis.Tests、三つの source project 全量の mutation と未検出 mutant の記録 |
 
 時間予算は、root の `tiergate.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
 push フックはこの予算で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。

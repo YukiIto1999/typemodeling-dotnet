@@ -14,6 +14,11 @@ let
   '';
   # mutation の worker 数。既定の論理 core の半分では、作業機で並行する検証と合わせてメモリが逼迫する
   mutationConcurrency = "2";
+  # props の取り込みと診断を弱める設定の拒否を、利用側を模した repository の build で確かめる Medium test
+  analysisTests = ''
+    dotnet tests/TypeModeling.Analysis.Tests/bin/Debug/net10.0/TypeModeling.Analysis.Tests.dll \
+      --no-ansi --disable-logo --no-progress
+  '';
 in
 {
   packages = [
@@ -69,6 +74,7 @@ in
     dotnet tests/TypeModeling.Testing.Tests/bin/Debug/net10.0/TypeModeling.Testing.Tests.dll \
       --no-ansi --disable-logo --no-progress \
       --treenode-filter '/*/TypeModeling.Testing.Tests/SelfAuditTests/*'
+    ${analysisTests}
   '';
 
   # 変更した行の mutation 分析。未検出数と終了状態を保存し、受入検証とは分離する
@@ -130,6 +136,7 @@ in
     verify
     dotnet tests/TypeModeling.Testing.Tests/bin/Debug/net10.0/TypeModeling.Testing.Tests.dll \
       --no-ansi --disable-logo --no-progress
+    ${analysisTests}
 
     projects=()
     test_projects=()

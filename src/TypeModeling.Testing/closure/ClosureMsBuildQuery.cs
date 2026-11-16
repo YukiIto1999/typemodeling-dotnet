@@ -61,11 +61,12 @@ internal static class ClosureMsBuildQuery
     internal static string Property(JsonDocument evaluation, string propertyName) =>
         MsBuildJson.Property(evaluation, propertyName);
 
-    /// <summary>評価済み ProjectReference の取得</summary>
+    /// <summary>評価済み ProjectReference の取得。analyzer だけを届ける参照は runtime の閉包に入れない</summary>
     /// <param name="evaluation">MSBuild 評価 JSON</param>
     /// <returns>ProjectReference の絶対パス</returns>
     internal static IEnumerable<string> ProjectReferences(JsonDocument evaluation) =>
         MsBuildJson.Items(evaluation, "ProjectReference")
+            .Where(item => MsBuildJson.ItemValue(item, "OutputItemType") != "Analyzer")
             .Select(item => MsBuildJson.ItemValue(item, "FullPath"))
             .Where(path => path.Length > 0);
 }

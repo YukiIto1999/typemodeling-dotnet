@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `TypeModeling.Analysis.props` attaches the analyzer to every C# project with one import from the consumer's `Directory.Build.props`, so a project no longer declares an analyzer reference of its own. The build fails with TYPMOD201 when the analyzer project is missing from the checkout, with TYPMOD202 when `RunAnalyzers` or `RunAnalyzersDuringBuild` stops the analyzers, and with TYPMOD203 when the analyzer is not among the project's analyzers.
+- TYPMOD022 reports a setting that lowers or hides a TypeModeling diagnostic: a lower severity in `.editorconfig` or a global config, `NoWarn`, an unrestored `#pragma warning disable`, and an assembly-wide `SuppressMessage`. It is `NotConfigurable`, so `NoWarn`, `.editorconfig`, a ruleset, and `#pragma` cannot suppress it.
+- `TypeModeling.Analysis.Tests` builds repositories that import the props with each weakening in turn, and checks that the build fails with the diagnostic or error above. It runs in `verify-push` and `verify-full`.
+
 ### Changed
 
 - The `verify` and `verify-push` time budgets are declared in `tiergate.json` at the repository root. The declaration file was renamed and its keys are unchanged.

@@ -22,18 +22,38 @@ This README is for developers who use the library in their projects.
 
 ## Installation
 
-Check out the repository into the same workspace and reference it by a relative path.
+Check out the repository into the same workspace.
 Pin the version with a `vX.Y.Z` tag on `main`.
+
+Import the analysis props once, from the `Directory.Build.props` that covers every project of the repository:
+
+```xml
+<Project>
+  <Import Project="../typemodeling-dotnet/TypeModeling.Analysis.props" />
+</Project>
+```
+
+The import attaches the analyzer to every C# project under that `Directory.Build.props`, so no project declares an analyzer reference of its own.
+Exhaustiveness, generation, and every diagnostic run in the analyzer.
+A project that uses the library references the runtime library as usual:
 
 ```xml
 <ItemGroup>
   <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling/TypeModeling.csproj" />
-  <ProjectReference Include="../typemodeling-dotnet/src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj"
-                    OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
 
-Every project that declares or matches closed types, unions, or results attaches the analyzer, because exhaustiveness and generation run there.
+The build fails with an error when the analysis is missing or weakened:
+
+| ID | Cause |
+|---|---|
+| TYPMOD201 | The analyzer project is not in the checkout |
+| TYPMOD202 | `RunAnalyzers` is `false`, or `RunAnalyzersDuringBuild` is `false` without `RunAnalyzers` set to `true` |
+| TYPMOD203 | The analyzer is not among the project's analyzers, for example because a `ProjectReference` or an `Analyzer` item was removed |
+| TYPMOD022 | A setting weakens a TypeModeling diagnostic (see below) |
+
+The import does not reach a project that opts out of `Directory.Build.props` (`ImportDirectoryBuildProps` set to `false` before the SDK props or as a global property), a project whose nearest `Directory.Build.props` does not import its parent, or a project outside the directory of the `Directory.Build.props`.
+The build cannot detect such a project, so keep it free of TypeModeling types, or import the props from its own `Directory.Build.props`.
 Architecture-test projects also reference [TypeModeling.Testing](./src/TypeModeling.Testing/).
 
 ## Usage
@@ -186,8 +206,25 @@ The generator adds a private constructor and a `Create` method that returns the 
 | TYPMOD019 | Error | A conversion to a closed enum comes from a constant of a member | Closed enums |
 | TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
 | TYPMOD021 | Error, off by default | A switch over a closed type or a union `Value` names its cases and has no arm that accepts a case added later | None |
+| TYPMOD022 | Error | No setting lowers the severity of a TypeModeling diagnostic or suppresses it | None |
 
 The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.
+
+### Weakened diagnostics
+
+TYPMOD022 reports a setting that lowers a TypeModeling diagnostic below its default severity or hides it, so a build cannot pass by switching a diagnostic off.
+Settings that cannot take effect, such as a wildcard like `dotnet_diagnostic.TYPMOD*.severity`, are not reported, and the diagnostics they name stay errors.
+The diagnostic is `NotConfigurable`, so `NoWarn`, `.editorconfig`, a ruleset, and `#pragma` cannot suppress it.
+It reports these settings:
+
+- `dotnet_diagnostic.<id>.severity` in an `.editorconfig` or a global config that lowers the diagnostic, for example to `none`, `silent`, `suggestion`, or `warning` for an error.
+- `dotnet_analyzer_diagnostic.severity` or `dotnet_analyzer_diagnostic.category-TypeModeling.severity` set to `none`, `silent`, or `suggestion`.
+- `NoWarn` or another compiler setting that suppresses or lowers a diagnostic.
+- A `#pragma warning disable` of a TypeModeling diagnostic, or a bare `#pragma warning disable`, without a `restore` in the same file.
+- An assembly-wide `SuppressMessage` of a TypeModeling diagnostic.
+
+TYPMOD021 is off by default, so it is not guarded.
+A `SuppressMessage` at assembly scope that names TYPMOD022 itself suppresses even this diagnostic, because the compiler applies it to every diagnostic.
 
 ### Explicit cases
 

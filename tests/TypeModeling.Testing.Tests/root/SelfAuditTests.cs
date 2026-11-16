@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using TUnit.Core;
-using TypeModeling.Testing.Attach;
 using TypeModeling.Testing.Closure;
 
 namespace TypeModeling.Testing.Tests;
@@ -9,34 +8,6 @@ namespace TypeModeling.Testing.Tests;
 [NotInParallel]
 public sealed class SelfAuditTests
 {
-    /// <summary>closed type 使用 project と自 analyzer attachment の適合</summary>
-    [Test]
-    public async Task Closed_type_using_projects_attach_the_type_modeling_analyzer()
-    {
-        var repoRoot = RepoRoot();
-        var violations = await AnalyzerAttachmentConformance.ViolationsAsync(
-            repoRoot,
-            new AnalyzerAttachmentRequirement(
-                "src/TypeModeling.Analyzers/TypeModeling.Analyzers.csproj",
-                new HashSet<string>(StringComparer.Ordinal)
-                {
-                    "TYPMOD101",
-                    "TYPMOD102",
-                    "TYPMOD103",
-                },
-                new HashSet<string>(StringComparer.Ordinal) { "TYPMOD" },
-                new HashSet<string>(StringComparer.Ordinal)
-                {
-                    "src/TypeModeling/TypeModeling.csproj",
-                    "tests/TypeModeling.Tests/TypeModeling.Tests.csproj",
-                },
-                new HashSet<string>(StringComparer.Ordinal) { "TypeModeling" }),
-            new ClosedTypeUsageDetector(),
-            CancellationToken.None);
-
-        RequireNoViolations("closed type 使用 project の analyzer attachment", violations);
-    }
-
     /// <summary>TypeModeling solution 閉包と閉じた階層規約の適合</summary>
     [Test]
     public async Task TypeModeling_solution_conforms_to_the_closed_hierarchy_rules()
