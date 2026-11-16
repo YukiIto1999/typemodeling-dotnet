@@ -6,6 +6,8 @@
 
 devenv が .NET SDK と検証入口を管理する。
 作業前に、リポジトリの root で `devenv shell` を実行する。
+初回の検証前と、依存の宣言または project を追加・変更した後は、`devenv shell -- dotnet restore TypeModeling.slnx` を実行する。
+検証の入口は `--no-restore` で build するため、先に restore を完了させる。
 
 ## ブランチ
 
