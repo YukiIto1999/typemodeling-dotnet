@@ -18,9 +18,10 @@ internal static class ValueObjectLawAssertions
         TRaw raw,
         TRaw expected,
         Func<TRaw, Result<TValue, TFailure>> create,
-        Func<TValue, TRaw> underlying) =>
-        create(raw).Value is Succeeded<TValue> succeeded &&
-        EqualityComparer<TRaw>.Default.Equals(underlying(succeeded.Value), expected);
+        Func<TValue, TRaw> underlying
+    ) =>
+        create(raw).Value is Succeeded<TValue> succeeded
+        && EqualityComparer<TRaw>.Default.Equals(underlying(succeeded.Value), expected);
 
     /// <summary>無効な入力の拒否と Parse が返した失敗理由の保持</summary>
     /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
@@ -33,9 +34,10 @@ internal static class ValueObjectLawAssertions
     public static bool FailsWith<TValue, TRaw, TFailure>(
         TRaw raw,
         TFailure expected,
-        Func<TRaw, Result<TValue, TFailure>> create) =>
-        create(raw).Value is Failed<TFailure> failed &&
-        EqualityComparer<TFailure>.Default.Equals(failed.Failure, expected);
+        Func<TRaw, Result<TValue, TFailure>> create
+    ) =>
+        create(raw).Value is Failed<TFailure> failed
+        && EqualityComparer<TFailure>.Default.Equals(failed.Failure, expected);
 
     /// <summary>保持値を入力にした再構築の冪等性</summary>
     /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
@@ -48,14 +50,15 @@ internal static class ValueObjectLawAssertions
     public static bool RebuildsIdempotently<TValue, TRaw, TFailure>(
         TRaw raw,
         Func<TRaw, Result<TValue, TFailure>> create,
-        Func<TValue, TRaw> underlying)
+        Func<TValue, TRaw> underlying
+    )
     {
         if (create(raw).Value is not Succeeded<TValue> first)
             return false;
 
         var firstUnderlying = underlying(first.Value);
-        return create(firstUnderlying).Value is Succeeded<TValue> rebuilt &&
-               EqualityComparer<TRaw>.Default.Equals(underlying(rebuilt.Value), firstUnderlying);
+        return create(firstUnderlying).Value is Succeeded<TValue> rebuilt
+            && EqualityComparer<TRaw>.Default.Equals(underlying(rebuilt.Value), firstUnderlying);
     }
 
     /// <summary>同じ値へ正規化される基底値から構築した値オブジェクトの等価性</summary>
@@ -69,10 +72,11 @@ internal static class ValueObjectLawAssertions
     public static bool EqualCreations<TValue, TRaw, TFailure>(
         TRaw firstRaw,
         TRaw secondRaw,
-        Func<TRaw, Result<TValue, TFailure>> create) =>
-        create(firstRaw).Value is Succeeded<TValue> first &&
-        create(secondRaw).Value is Succeeded<TValue> second &&
-        EqualityComparer<TValue>.Default.Equals(first.Value, second.Value);
+        Func<TRaw, Result<TValue, TFailure>> create
+    ) =>
+        create(firstRaw).Value is Succeeded<TValue> first
+        && create(secondRaw).Value is Succeeded<TValue> second
+        && EqualityComparer<TValue>.Default.Equals(first.Value, second.Value);
 
     /// <summary>異なる基底値から構築した値オブジェクトの非等価性</summary>
     /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
@@ -85,10 +89,11 @@ internal static class ValueObjectLawAssertions
     public static bool UnequalCreations<TValue, TRaw, TFailure>(
         TRaw firstRaw,
         TRaw secondRaw,
-        Func<TRaw, Result<TValue, TFailure>> create) =>
-        create(firstRaw).Value is Succeeded<TValue> first &&
-        create(secondRaw).Value is Succeeded<TValue> second &&
-        !EqualityComparer<TValue>.Default.Equals(first.Value, second.Value);
+        Func<TRaw, Result<TValue, TFailure>> create
+    ) =>
+        create(firstRaw).Value is Succeeded<TValue> first
+        && create(secondRaw).Value is Succeeded<TValue> second
+        && !EqualityComparer<TValue>.Default.Equals(first.Value, second.Value);
 
     /// <summary>等しい値オブジェクトのハッシュ値の整合</summary>
     /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
@@ -99,11 +104,12 @@ internal static class ValueObjectLawAssertions
     /// <returns>等しい値オブジェクトのハッシュ値が等しい場合は true</returns>
     public static bool EqualCreationsHaveEqualHashes<TValue, TRaw, TFailure>(
         TRaw raw,
-        Func<TRaw, Result<TValue, TFailure>> create) =>
-        create(raw).Value is Succeeded<TValue> first &&
-        create(raw).Value is Succeeded<TValue> second &&
-        EqualityComparer<TValue>.Default.Equals(first.Value, second.Value) &&
-        first.Value?.GetHashCode() == second.Value?.GetHashCode();
+        Func<TRaw, Result<TValue, TFailure>> create
+    ) =>
+        create(raw).Value is Succeeded<TValue> first
+        && create(raw).Value is Succeeded<TValue> second
+        && EqualityComparer<TValue>.Default.Equals(first.Value, second.Value)
+        && first.Value?.GetHashCode() == second.Value?.GetHashCode();
 
     /// <summary>値オブジェクトの文字列表現と保持値の文字列表現の整合</summary>
     /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
@@ -116,7 +122,32 @@ internal static class ValueObjectLawAssertions
     public static bool StringifiesAsUnderlying<TValue, TRaw, TFailure>(
         TRaw raw,
         Func<TRaw, Result<TValue, TFailure>> create,
-        Func<TValue, TRaw> underlying) =>
-        create(raw).Value is Succeeded<TValue> succeeded &&
-        succeeded.Value?.ToString() == underlying(succeeded.Value)?.ToString();
+        Func<TValue, TRaw> underlying
+    ) =>
+        create(raw).Value is Succeeded<TValue> succeeded
+        && succeeded.Value?.ToString() == underlying(succeeded.Value)?.ToString();
+
+    /// <summary>with による複製が別の instance として検証済みの基底値を保つこと</summary>
+    /// <typeparam name="TValue">構築される値オブジェクトの型</typeparam>
+    /// <typeparam name="TRaw">構築の入力になる基底値の型</typeparam>
+    /// <typeparam name="TFailure">構築に失敗した理由の型</typeparam>
+    /// <param name="raw">規則に沿う外部表現</param>
+    /// <param name="expected">Parse が返す基底値</param>
+    /// <param name="create">入力を検証して値オブジェクトを構築する関数</param>
+    /// <param name="underlying">値オブジェクトから基底値を取り出す関数</param>
+    /// <param name="copy">with による複製を作る関数</param>
+    /// <returns>複製が別の instance で元と等しく、期待する基底値を保持した場合は true</returns>
+    public static bool CopiesKeepTheValidatedValue<TValue, TRaw, TFailure>(
+        TRaw raw,
+        TRaw expected,
+        Func<TRaw, Result<TValue, TFailure>> create,
+        Func<TValue, TRaw> underlying,
+        Func<TValue, TValue> copy
+    )
+        where TValue : class =>
+        create(raw).Value is Succeeded<TValue> succeeded
+        && copy(succeeded.Value) is { } copied
+        && !ReferenceEquals(copied, succeeded.Value)
+        && EqualityComparer<TValue>.Default.Equals(copied, succeeded.Value)
+        && EqualityComparer<TRaw>.Default.Equals(underlying(copied), expected);
 }

@@ -11,6 +11,7 @@ using TypeModeling.Analyzers.Diagnostics.MustUse;
 using TypeModeling.Analyzers.Diagnostics.ResultUsage;
 using TypeModeling.Analyzers.Diagnostics.UnionType;
 using TypeModeling.Analyzers.Diagnostics.UnreachableArm;
+using TypeModeling.Analyzers.Diagnostics.ValueObject;
 using TypeModeling.Analyzers.Suppression.Exhaustiveness;
 using static TypeModeling.Analyzers.Tests.DiagnosticGuardFixture;
 
@@ -20,7 +21,7 @@ namespace TypeModeling.Analyzers.Tests;
 public sealed class DiagnosticGuardCoverageTests
 {
     /// <summary>ValueObject の生成が報告する診断。analyzer の SupportedDiagnostics には現れない</summary>
-    private const string GeneratorDiagnosticId = "TYPMOD002";
+    private static readonly string[] GeneratorDiagnosticIds = ["TYPMOD002", "TYPMOD023"];
 
     /// <summary>既定で無効な診断。利用側が有効にした時にだけ働くので守らない</summary>
     private const string OptInDiagnosticId = "TYPMOD021";
@@ -52,11 +53,12 @@ public sealed class DiagnosticGuardCoverageTests
             new ResultUsageAnalyzer(),
             new UnionTypeAnalyzer(),
             new UnreachableArmAnalyzer(),
+            new ValueObjectConstructionAnalyzer(),
         ];
         var published = analyzers
             .SelectMany(analyzer => analyzer.SupportedDiagnostics.Select(rule => rule.Id))
             .Concat(new ExhaustivenessSuppressor().SupportedSuppressions.Select(rule => rule.Id))
-            .Append(GeneratorDiagnosticId)
+            .Concat(GeneratorDiagnosticIds)
             .Where(id => id != OptInDiagnosticId)
             .Order(StringComparer.Ordinal)
             .ToArray();
@@ -79,6 +81,8 @@ public sealed class DiagnosticGuardCoverageTests
         await Assert
             .That(published)
             .Contains("TYPMOD002")
+            .And.Contains("TYPMOD023")
+            .And.Contains("TYPMOD024")
             .And.Contains("TYPMOD022")
             .And.Contains("TYPMOD101");
     }

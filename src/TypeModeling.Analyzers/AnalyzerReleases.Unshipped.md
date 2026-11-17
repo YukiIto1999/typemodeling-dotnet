@@ -1,6 +1,7 @@
 ; Unshipped analyzer release
 ; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 ; TYPMOD002: ValueObject の Parse 欠落と署名不適合を生成時の error として報告
+; TYPMOD023: ValueObject の宣言の形の不適合を生成時の error として報告
 
 ### New Rules
 
@@ -27,6 +28,8 @@ TYPMOD019 | TypeModeling | Error | 名前付きの member に当たらない値�
 TYPMOD020 | TypeModeling | Error | 名前付きの member に当たらない値を作る閉じた enum の演算の禁止(C# 16 の closed enum に対応)
 TYPMOD021 | TypeModeling | Disabled | 閉じた型の case を挙げず、後から足す case を受け取る arm の禁止(診断の設定で有効にする)
 TYPMOD022 | TypeModeling | Error | TypeModeling の診断を NoWarn、editorconfig、#pragma、SuppressMessage で弱める設定の禁止(NotConfigurable で、設定では下げられない)
+TYPMOD023 | TypeModeling | Error | ValueObject の宣言の形の不適合の禁止(partial の sealed な record でない宣言、基底型、コンストラクタ、Value の宣言、書き込める field と property による検証を経ない構築と書込の経路の禁止)
+TYPMOD024 | TypeModeling | Error | ValueObject の型を new で構築する式の禁止(生成した Create と with の複製だけを許す)
 
 ### Removed Rules
 

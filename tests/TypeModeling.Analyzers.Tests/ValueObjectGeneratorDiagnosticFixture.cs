@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using TypeModeling.Analyzers.Generation.ValueObject;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
+using TypeModeling.Analyzers.Generation.ValueObject;
 
 namespace TypeModeling.Analyzers.Tests;
 
@@ -26,8 +26,12 @@ internal static class ValueObjectGeneratorDiagnosticFixture
 
     /// <summary>ValueObject generator の実行</summary>
     /// <param name="source">検証対象 source</param>
+    /// <param name="otherGeneratorSource">追加しなければ null の別の generator が追加する source</param>
     /// <returns>generator 実行結果</returns>
-    internal static ValueObjectGeneratorResult RunGenerator(string source)
+    internal static ValueObjectGeneratorResult RunGenerator(
+        string source,
+        string? otherGeneratorSource = null
+    )
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
         var compilation = CSharpCompilation.Create(
@@ -37,47 +41,100 @@ internal static class ValueObjectGeneratorDiagnosticFixture
                 CSharpSyntaxTree.ParseText(source, parseOptions),
             ],
             CompilationReferences.Platform,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+        ImmutableArray<ISourceGenerator> generators =
+        [
+            new ValueObjectGenerator().AsSourceGenerator(),
+        ];
+        if (otherGeneratorSource is not null)
+            generators = generators.Add(
+                new SourceAddingGenerator(otherGeneratorSource).AsSourceGenerator()
+            );
+
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
-            [new ValueObjectGenerator().AsSourceGenerator()],
-            parseOptions: parseOptions);
+            generators,
+            parseOptions: parseOptions
+        );
 
         driver = driver.RunGeneratorsAndUpdateCompilation(
             compilation,
             out var outputCompilation,
-            out var generatorDiagnostics);
-        var generatedSources = driver.GetRunResult().Results
-            .SelectMany(result => result.GeneratedSources)
+            out var generatorDiagnostics
+        );
+        var generatedSources = driver
+            .GetRunResult()
+            .Results.SelectMany(result => result.GeneratedSources)
             .ToImmutableArray();
 
         return new ValueObjectGeneratorResult(
             outputCompilation,
             generatorDiagnostics,
-            generatedSources);
+            generatedSources
+        );
+    }
+
+    /// <summary>決めた source を compilation へ追加するだけの別の generator</summary>
+    /// <param name="source">追加する source</param>
+    private sealed class SourceAddingGenerator(string source) : IIncrementalGenerator
+    {
+        /// <summary>追加する source の登録</summary>
+        /// <param name="context">incremental generator の初期化 context</param>
+        public void Initialize(IncrementalGeneratorInitializationContext context) =>
+            context.RegisterPostInitializationOutput(output =>
+                output.AddSource("OtherGenerator.g.cs", source)
+            );
     }
 
     /// <summary>TYPMOD002 の内容検証</summary>
     /// <param name="result">generator 実行結果</param>
     /// <param name="reason">期待する不適合理由</param>
     /// <returns>非同期 assertion</returns>
-    internal static async Task AssertTypmod002(
-        ValueObjectGeneratorResult result,
-        string reason)
+    internal static async Task AssertTypmod002(ValueObjectGeneratorResult result, string reason)
     {
-        var diagnostic = result.GeneratorDiagnostics
-            .Single(item => item.Id == "TYPMOD002");
+        var diagnostic = result.GeneratorDiagnostics.Single(item => item.Id == "TYPMOD002");
         await Assert.That(diagnostic.Severity).IsEqualTo(DiagnosticSeverity.Error);
-        var sourceTree = diagnostic.Location.SourceTree
+        var sourceTree =
+            diagnostic.Location.SourceTree
             ?? throw new InvalidOperationException("TYPMOD002 diagnostic has no source tree");
-        var sourceText = await sourceTree
-            .GetTextAsync(CancellationToken.None);
-        await Assert.That(sourceText.ToString(diagnostic.Location.SourceSpan))
+        var sourceText = await sourceTree.GetTextAsync(CancellationToken.None);
+        await Assert
+            .That(sourceText.ToString(diagnostic.Location.SourceSpan))
             .IsEqualTo("Positive");
-        await Assert.That(diagnostic.GetMessage(
-                System.Globalization.CultureInfo.InvariantCulture))
+        await Assert
+            .That(diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture))
             .IsEqualTo(
-                "型 Positive には private static Result<int, TFailure> Parse(int raw) が必要。" +
-                reason);
+                "型 Positive には private static Result<int, TFailure> Parse(int raw) が必要。"
+                    + reason
+            );
+        await Assert.That(result.GeneratedSources).IsEmpty();
+    }
+
+    /// <summary>TYPMOD023 の内容検証</summary>
+    /// <param name="result">generator 実行結果</param>
+    /// <param name="reasons">期待する不適合理由の連結</param>
+    /// <returns>非同期 assertion</returns>
+    internal static async Task AssertTypmod023(ValueObjectGeneratorResult result, string reasons)
+    {
+        var diagnostic = result.GeneratorDiagnostics.Single(item => item.Id == "TYPMOD023");
+        await Assert.That(diagnostic.Severity).IsEqualTo(DiagnosticSeverity.Error);
+        var sourceTree =
+            diagnostic.Location.SourceTree
+            ?? throw new InvalidOperationException("TYPMOD023 diagnostic has no source tree");
+        var sourceText = await sourceTree.GetTextAsync(CancellationToken.None);
+        await Assert
+            .That(sourceText.ToString(diagnostic.Location.SourceSpan))
+            .IsEqualTo("Positive");
+        await Assert
+            .That(diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture))
+            .IsEqualTo(
+                "型 Positive は検証を経ずに構築も書込もできない宣言にする。"
+                    + "基底型のない sealed partial record とし、コンストラクタ、Value、書き込める field と property を宣言しない。"
+                    + reasons
+            );
+        await Assert
+            .That(result.GeneratorDiagnostics.Any(item => item.Id == "TYPMOD002"))
+            .IsFalse();
         await Assert.That(result.GeneratedSources).IsEmpty();
     }
 
@@ -88,5 +145,6 @@ internal static class ValueObjectGeneratorDiagnosticFixture
     internal sealed record ValueObjectGeneratorResult(
         Compilation Compilation,
         ImmutableArray<Diagnostic> GeneratorDiagnostics,
-        ImmutableArray<GeneratedSourceResult> GeneratedSources);
+        ImmutableArray<GeneratedSourceResult> GeneratedSources
+    );
 }
