@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Generation.ValueObject;
 
@@ -12,14 +13,16 @@ public sealed class ValueObjectGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var descriptions = context.SyntaxProvider.ForAttributeWithMetadataName(
-            ValueObjectDescriptionBuilder.AttributeMetadataName,
+            ValueObjectContract.AttributeMetadataName,
             predicate: static (node, _) => node is TypeDeclarationSyntax,
             transform: static (attributeContext, _) =>
-                ValueObjectDescriptionBuilder.Describe(attributeContext));
+                ValueObjectDescriptionBuilder.Describe(attributeContext)
+        );
 
         context.RegisterSourceOutput(
             descriptions.Where(static description => description is not null),
             static (production, description) =>
-                ValueObjectSourceEmitter.Produce(production, description!));
+                ValueObjectSourceEmitter.Produce(production, description!)
+        );
     }
 }

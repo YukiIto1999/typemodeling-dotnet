@@ -192,9 +192,10 @@ Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
 The generator adds a get-only `Value`, a private constructor, and a `Create` method that returns the result of `Parse`.
 `Create` keeps the value that `Parse` returns, so `Parse` can normalize its input.
 Code outside the declaration can therefore obtain an `OrderId` only from `Create`, and `id with { }` copies a validated value unchanged.
-TYPMOD023 keeps it so: the record must be a `sealed partial record` without a base type, and the generator rejects every constructor you declare (a primary, copy, or private one included), a member named `Value`, and a field or property that code can write (`set`, `init`, or a field that is not `readonly`).
+TYPMOD023 keeps it so. It is an analyzer that checks the final compilation, including the code that another generator adds to the partial: the record must be a `sealed partial record` without a base type, and it rejects every constructor except the generated private one (a primary, copy, or private one included), a second member named `Value`, and a field, property, or indexer that code can write (`set`, `init`, or a field that is not `readonly`).
+A copy constructor that another generator adds is rejected for that reason, because `id with { }` would call it without a `new`.
 TYPMOD024 rejects every `new` of a value object in source, including code from another generator and code that is marked as generated, whether written as `new OrderId(...)`, as a target-typed `new(...)`, or inside a lambda or a nested type of the record, so `public static OrderId Empty => new(Guid.Empty)` does not compile.
-Only the `new` inside the generated `Create` is accepted, and the analyzer finds it by its signature, `public static Result<OrderId, TFailure> Create(Guid raw)`, which no other declaration of the record can repeat.
+Only the `new` inside the generated `Create` is accepted, and the analyzer finds it by its signature, `public static Result<OrderId, TFailure> Create(Guid raw)`, which no other declaration of the record can repeat. The generated constructor is found by its signature in the same way, and the generated `Value` is the only member of that name that TYPMOD023 accepts.
 Reflection, serializers, and unsafe code can still create an uninitialized instance.
 
 ### Other types
@@ -228,7 +229,7 @@ Reflection, serializers, and unsafe code can still create an uninitialized insta
 | TYPMOD020 | Error | An operator that returns a closed enum produces a member from constants | Closed enums |
 | TYPMOD021 | Error, off by default | A switch over a closed type or a union `Value` names its cases and has no arm that accepts a case added later | None |
 | TYPMOD022 | Error | No setting lowers the severity of a TypeModeling diagnostic or suppresses it | None |
-| TYPMOD023 | Error | A value object is a sealed partial record without a base type that declares no constructor, no `Value`, and no writable field or property | None |
+| TYPMOD023 | Error | A value object is a sealed partial record without a base type that declares no constructor, no `Value`, and no writable field, property, or indexer | None |
 | TYPMOD024 | Error | A value object is not built with `new` in source, only by `Create` and by a `with` copy | None |
 
 The suppressions TYPMOD101, TYPMOD102, and TYPMOD103 remove CS8509, CS8524, and CS8846 from a switch expression that C# 15 judges exhaustive.

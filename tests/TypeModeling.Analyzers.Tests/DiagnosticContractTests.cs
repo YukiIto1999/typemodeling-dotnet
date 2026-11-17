@@ -116,6 +116,16 @@ public sealed class DiagnosticContractTests
             ]
         );
 
+    /// <summary>ValueObjectShapeAnalyzer が公開する診断</summary>
+    [Test]
+    public Task ValueObjectShapeAnalyzer_publishes_its_diagnostics() =>
+        AssertDiagnostics(
+            new ValueObjectShapeAnalyzer(),
+            [
+                "TYPMOD023 | Error | ValueObject の宣言の形が不適合 | 型 {0} は検証を経ずに構築も書込もできない宣言にする。基底型のない sealed partial record とし、コンストラクタ、Value、書き込める field、property、indexer を宣言しない。{1}",
+            ]
+        );
+
     /// <summary>網羅の抑止が公開する抑止規則</summary>
     [Test]
     public async Task The_exhaustiveness_suppressor_publishes_its_suppressions()

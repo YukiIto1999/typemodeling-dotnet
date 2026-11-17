@@ -1,20 +1,19 @@
-using Microsoft.CodeAnalysis;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 using TUnit.Core;
-using static TypeModeling.Analyzers.Tests.ValueObjectGeneratorDiagnosticFixture;
+using static TypeModeling.Analyzers.Tests.ValueObjectConstructionFixture;
 using static TypeModeling.Analyzers.Tests.ValueObjectSources;
 
 namespace TypeModeling.Analyzers.Tests;
 
-/// <summary>ValueObject の型の本体に書いた member に対する生成時診断</summary>
+/// <summary>ValueObject の型の本体に書いた member に対する診断</summary>
 public sealed class Typmod023MemberTests
 {
     /// <summary>手書きのコンストラクタで Parse を迂回して Guid.Empty の値オブジェクトを作る経路の遮断</summary>
     [Test]
     public async Task Typmod023_blocks_a_public_constructor_that_bypasses_Parse()
     {
-        var result = RunGenerator(
+        var analysis = await Observe(
             """
             using TypeModeling.Domain;
 
@@ -37,7 +36,7 @@ public sealed class Typmod023MemberTests
             """
         );
 
-        await AssertTypmod023(result, "コンストラクタ Positive() を宣言している。");
+        await AssertTypmod023(analysis, "コンストラクタ Positive() を宣言している。");
     }
 
     /// <summary>コンストラクタ、Value、書き込める状態のうち、迂回経路を足す member の診断</summary>
@@ -58,6 +57,7 @@ public sealed class Typmod023MemberTests
         "private Positive(Positive original) { }",
         "コンストラクタ Positive(Positive) を宣言している。"
     )]
+    [Arguments("private Positive(int value) { }", "コンストラクタ Positive(int) を宣言している。")]
     [Arguments("public int Value => 1;", "生成する member の Value を宣言している。")]
     [Arguments(
         "public int Extra { get; set; }",
@@ -69,18 +69,31 @@ public sealed class Typmod023MemberTests
     )]
     [Arguments("public int Extra;", "書き込める field Extra を宣言している。")]
     [Arguments("private int cached;", "書き込める field cached を宣言している。")]
+    [Arguments(
+        "public int this[int index] { get => 0; set { } }",
+        "set か init を持つ indexer this[int] を宣言している。"
+    )]
+    [Arguments(
+        "public int this[string key, int index] { get => 0; init { } }",
+        "set か init を持つ indexer this[string, int] を宣言している。"
+    )]
+    [Arguments(
+        "private readonly int[] cells = new int[1]; "
+            + "public int this[int index] { get => cells[index]; set => cells[index] = value; }",
+        "set か init を持つ indexer this[int] を宣言している。"
+    )]
     public async Task Typmod023_reports_each_member_that_adds_a_path(string members, string reasons)
     {
-        var result = RunGenerator(Declare(SealedPositive, members));
+        var analysis = await Observe(Declare(SealedPositive, members));
 
-        await AssertTypmod023(result, reasons);
+        await AssertTypmod023(analysis, reasons);
     }
 
     /// <summary>別の partial 宣言のコンストラクタの診断</summary>
     [Test]
     public async Task Typmod023_reports_a_constructor_in_another_partial_declaration()
     {
-        var result = RunGenerator(
+        var analysis = await Observe(
             Declare(SealedPositive)
                 + """
 
@@ -91,14 +104,14 @@ public sealed class Typmod023MemberTests
                 """
         );
 
-        await AssertTypmod023(result, "コンストラクタ Positive() を宣言している。");
+        await AssertTypmod023(analysis, "コンストラクタ Positive() を宣言している。");
     }
 
     /// <summary>構築も書込も足さない member の診断抑止</summary>
     [Test]
     public async Task Typmod023_does_not_report_for_members_that_add_no_path()
     {
-        var result = RunGenerator(
+        var analysis = await Observe(
             Declare(
                 "public sealed partial record Positive : System.IComparable<Positive>",
                 "private const int Limit = 10; "
@@ -110,20 +123,9 @@ public sealed class Typmod023MemberTests
             )
         );
 
-        await Assert
-            .That(
-                result.GeneratorDiagnostics.Any(diagnostic =>
-                    diagnostic.Id is "TYPMOD002" or "TYPMOD023"
-                )
-            )
-            .IsFalse();
-        await Assert.That(result.GeneratedSources.Length).IsEqualTo(1);
-        await Assert
-            .That(
-                result
-                    .Compilation.GetDiagnostics()
-                    .Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            )
-            .IsFalse();
+        await Assert.That(analysis.Diagnostics).IsEmpty();
+        await Assert.That(analysis.Result.GeneratorDiagnostics).IsEmpty();
+        await Assert.That(analysis.Result.GeneratedSources.Length).IsEqualTo(1);
+        await AssertCompiles(analysis);
     }
 }

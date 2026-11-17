@@ -14,7 +14,7 @@ public sealed class ValueObjectCreateTests
     [Test]
     public async Task Create_with_copies_and_other_creations_are_not_rejected()
     {
-        var (result, flagged) = await Analyze(
+        var analysis = await Observe(
             Declare(
                 SealedPositive,
                 """
@@ -35,16 +35,33 @@ public sealed class ValueObjectCreateTests
                 """
         );
 
-        await Assert.That(result.GeneratedSources.Length).IsEqualTo(1);
-        await Assert.That(result.GeneratorDiagnostics).IsEmpty();
-        await Assert.That(flagged).IsEmpty();
-        await Assert
-            .That(
-                result
-                    .Compilation.GetDiagnostics()
-                    .Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            )
-            .IsFalse();
+        await Assert.That(analysis.Result.GeneratedSources.Length).IsEqualTo(1);
+        await Assert.That(analysis.Result.GeneratorDiagnostics).IsEmpty();
+        await Assert.That(analysis.Diagnostics).IsEmpty();
+        await AssertCompiles(analysis);
+    }
+
+    /// <summary>別の generator が通常の出力で足した、構築も書込も足さない member を許す確認</summary>
+    [Test]
+    public async Task Members_that_another_generator_adds_without_a_path_are_not_rejected()
+    {
+        var analysis = await Observe(
+            Declare(SealedPositive),
+            """
+            namespace Probe;
+
+            public sealed partial record Positive
+            {
+                public bool IsPositive => Value > 0;
+                public static int Limit => 10;
+                public Positive Copy() => this with { };
+            }
+            """
+        );
+
+        await Assert.That(analysis.Result.GeneratedSources.Length).IsEqualTo(2);
+        await Assert.That(analysis.Diagnostics).IsEmpty();
+        await AssertCompiles(analysis);
     }
 
     /// <summary>生成する Create と同じ署名の宣言が compile できないことの確認</summary>

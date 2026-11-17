@@ -21,7 +21,7 @@ namespace TypeModeling.Analyzers.Tests;
 public sealed class DiagnosticGuardCoverageTests
 {
     /// <summary>ValueObject の生成が報告する診断。analyzer の SupportedDiagnostics には現れない</summary>
-    private static readonly string[] GeneratorDiagnosticIds = ["TYPMOD002", "TYPMOD023"];
+    private static readonly string[] GeneratorDiagnosticIds = ["TYPMOD002"];
 
     /// <summary>既定で無効な診断。利用側が有効にした時にだけ働くので守らない</summary>
     private const string OptInDiagnosticId = "TYPMOD021";
@@ -54,6 +54,7 @@ public sealed class DiagnosticGuardCoverageTests
             new UnionTypeAnalyzer(),
             new UnreachableArmAnalyzer(),
             new ValueObjectConstructionAnalyzer(),
+            new ValueObjectShapeAnalyzer(),
         ];
         var published = analyzers
             .SelectMany(analyzer => analyzer.SupportedDiagnostics.Select(rule => rule.Id))

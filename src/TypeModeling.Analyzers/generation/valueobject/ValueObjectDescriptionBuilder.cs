@@ -1,33 +1,19 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using TypeModeling.Analyzers.Facts;
 
 namespace TypeModeling.Analyzers.Generation.ValueObject;
 
 /// <summary>診断を含む値オブジェクト記述への変換</summary>
 internal static class ValueObjectDescriptionBuilder
 {
-    /// <summary>ValueObject 属性の metadata 名</summary>
-    internal const string AttributeMetadataName = "TypeModeling.Domain.ValueObjectAttribute`1";
-
-    /// <summary>Result 型の metadata 名</summary>
-    private const string ResultMetadataName = "TypeModeling.Domain.Result`2";
-
     /// <summary>ValueObject の Parse 署名診断</summary>
     private static readonly DiagnosticDescriptor ParseRule = new(
         id: "TYPMOD002",
         title: "ValueObject の Parse 署名が不適合",
         messageFormat: "型 {0} には private static Result<{1}, TFailure> Parse({1} raw) が必要。{2}",
-        category: "TypeModeling",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
-    /// <summary>ValueObject の宣言の形の診断</summary>
-    private static readonly DiagnosticDescriptor ShapeRule = new(
-        id: "TYPMOD023",
-        title: "ValueObject の宣言の形が不適合",
-        messageFormat: "型 {0} は検証を経ずに構築も書込もできない宣言にする。基底型のない sealed partial record とし、コンストラクタ、Value、書き込める field と property を宣言しない。{1}",
         category: "TypeModeling",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
@@ -39,8 +25,10 @@ internal static class ValueObjectDescriptionBuilder
     internal static ValueObjectDescription? Describe(GeneratorAttributeSyntaxContext context)
     {
         if (
-            context.TargetNode is not TypeDeclarationSyntax declaration
-            || context.TargetSymbol is not INamedTypeSymbol { TypeKind: TypeKind.Class } type
+            context.TargetNode is not RecordDeclarationSyntax declaration
+            || !declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+            || context.TargetSymbol
+                is not INamedTypeSymbol { IsRecord: true, TypeKind: TypeKind.Class } type
         )
         {
             return null;
@@ -55,20 +43,9 @@ internal static class ValueObjectDescriptionBuilder
             return null;
         }
 
-        var shapeViolations = ValueObjectShape.Violations(type, declaration);
-        if (shapeViolations.Length > 0)
-        {
-            return ValueObjectDescription.Failed(
-                ShapeRule,
-                declaration.Identifier.GetLocation(),
-                type.Name,
-                shapeViolations
-            );
-        }
-
         var underlying = attributeClass.TypeArguments[0];
         var resultDefinition = context.SemanticModel.Compilation.GetTypeByMetadataName(
-            ResultMetadataName
+            ValueObjectContract.ResultMetadataName
         );
         var parseMethods = type.GetMembers("Parse")
             .OfType<IMethodSymbol>()

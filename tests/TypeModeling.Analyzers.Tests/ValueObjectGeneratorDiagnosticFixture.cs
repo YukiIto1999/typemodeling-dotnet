@@ -74,15 +74,17 @@ internal static class ValueObjectGeneratorDiagnosticFixture
         );
     }
 
-    /// <summary>決めた source を compilation へ追加するだけの別の generator</summary>
+    /// <summary>決めた source を通常の source 出力で compilation へ追加するだけの別の generator</summary>
     /// <param name="source">追加する source</param>
+    /// <remarks>通常の出力は他の generator の入力にならないので、ValueObject の generator はこの source を見られない</remarks>
     private sealed class SourceAddingGenerator(string source) : IIncrementalGenerator
     {
         /// <summary>追加する source の登録</summary>
         /// <param name="context">incremental generator の初期化 context</param>
         public void Initialize(IncrementalGeneratorInitializationContext context) =>
-            context.RegisterPostInitializationOutput(output =>
-                output.AddSource("OtherGenerator.g.cs", source)
+            context.RegisterSourceOutput(
+                context.CompilationProvider,
+                (production, _) => production.AddSource("OtherGenerator.g.cs", source)
             );
     }
 
@@ -107,34 +109,6 @@ internal static class ValueObjectGeneratorDiagnosticFixture
                 "型 Positive には private static Result<int, TFailure> Parse(int raw) が必要。"
                     + reason
             );
-        await Assert.That(result.GeneratedSources).IsEmpty();
-    }
-
-    /// <summary>TYPMOD023 の内容検証</summary>
-    /// <param name="result">generator 実行結果</param>
-    /// <param name="reasons">期待する不適合理由の連結</param>
-    /// <returns>非同期 assertion</returns>
-    internal static async Task AssertTypmod023(ValueObjectGeneratorResult result, string reasons)
-    {
-        var diagnostic = result.GeneratorDiagnostics.Single(item => item.Id == "TYPMOD023");
-        await Assert.That(diagnostic.Severity).IsEqualTo(DiagnosticSeverity.Error);
-        var sourceTree =
-            diagnostic.Location.SourceTree
-            ?? throw new InvalidOperationException("TYPMOD023 diagnostic has no source tree");
-        var sourceText = await sourceTree.GetTextAsync(CancellationToken.None);
-        await Assert
-            .That(sourceText.ToString(diagnostic.Location.SourceSpan))
-            .IsEqualTo("Positive");
-        await Assert
-            .That(diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture))
-            .IsEqualTo(
-                "型 Positive は検証を経ずに構築も書込もできない宣言にする。"
-                    + "基底型のない sealed partial record とし、コンストラクタ、Value、書き込める field と property を宣言しない。"
-                    + reasons
-            );
-        await Assert
-            .That(result.GeneratorDiagnostics.Any(item => item.Id == "TYPMOD002"))
-            .IsFalse();
         await Assert.That(result.GeneratedSources).IsEmpty();
     }
 
