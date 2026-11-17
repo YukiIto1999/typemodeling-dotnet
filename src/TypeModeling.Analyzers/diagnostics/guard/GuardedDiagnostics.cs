@@ -117,6 +117,8 @@ internal static class GuardedDiagnostics
                 19,
                 20,
                 22,
+                23,
+                24,
             }
         )
             table[

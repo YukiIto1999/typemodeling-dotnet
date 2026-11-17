@@ -194,7 +194,14 @@ public sealed partial record OrderId
 Result<OrderId, OrderIdFailure> id = OrderId.Create(input);
 ```
 
-generator が private のコンストラクタと `Parse` の結果を返す `Create` を足すので、`OrderId` は検証を経た後にだけ存在する。
+generator は get だけの `Value` と private のコンストラクタと、`Parse` の結果を返す `Create` を足す。
+`Create` は `Parse` が返した値を保つので、`Parse` は入力を正規化できる。
+宣言の外のコードが `OrderId` を得る道は `Create` だけであり、`id with { }` は検証を経た値を変えずに複製する。
+TYPMOD023 がこの性質を保つ。これは analyzer であり、別の generator が partial に足した code を含む最終の compilation を検査する。record は基底型のない `sealed partial record` にし、generator が出力する private のコンストラクタを除く全てのコンストラクタ（primary、copy、private を含む）、二つ目の `Value` という名前の member、コードが書き込める field、property、indexer（`set`、`init`、`readonly` でない field）を拒否する。
+別の generator が足した copy コンストラクタも、`id with { }` が `new` を経ずに呼ぶので、この理由で拒否する。
+TYPMOD024 は、別の generator が出した code や生成 code と印を付けた code を含め、source に書いた値オブジェクトの `new` を全て拒否する。`new OrderId(...)`、target-typed な `new(...)`、record の lambda や入れ子の型の中のどれでも同じなので、`public static OrderId Empty => new(Guid.Empty)` は compile できない。
+許すのは生成した `Create` の中の `new` だけであり、analyzer はその署名 `public static Result<OrderId, TFailure> Create(Guid raw)` で見つける。この署名は record の他の宣言が繰り返せない。生成したコンストラクタも同じように署名で見つけ、TYPMOD023 は生成した `Value` を、その名前の唯一の member として許す。
+reflection、serializer、unsafe code は未初期化の instance を作れる。
 
 ### その他の型
 
@@ -227,6 +234,8 @@ generator が private のコンストラクタと `Parse` の結果を返す `Cr
 | TYPMOD020 | Error | 閉じた enum を返す演算は定数どうしで member を作る | closed enum |
 | TYPMOD021 | Error(既定で無効) | 閉じた型か union の `Value` への switch は case を一つずつ挙げ、後から足す case を受け取る arm を置かない | なし |
 | TYPMOD022 | Error | TypeModeling の診断の重大度を下げる設定や、診断を抑止する設定を置かない | なし |
+| TYPMOD023 | Error | 値オブジェクトは、基底型のない sealed partial record で、コンストラクタと `Value` と書き込める field、property、indexer を宣言しない | なし |
+| TYPMOD024 | Error | 値オブジェクトは source で `new` せず、`Create` と `with` の複製だけで作る | なし |
 
 抑止の TYPMOD101、TYPMOD102、TYPMOD103 は、C# 15 が網羅と判定する switch 式から CS8509、CS8524、CS8846 を外す。
 

@@ -10,6 +10,7 @@ using TypeModeling.Analyzers.Diagnostics.MustUse;
 using TypeModeling.Analyzers.Diagnostics.ResultUsage;
 using TypeModeling.Analyzers.Diagnostics.UnionType;
 using TypeModeling.Analyzers.Diagnostics.UnreachableArm;
+using TypeModeling.Analyzers.Diagnostics.ValueObject;
 using TypeModeling.Analyzers.Suppression.Exhaustiveness;
 
 namespace TypeModeling.Analyzers.Tests;
@@ -102,6 +103,26 @@ public sealed class DiagnosticContractTests
             new UnreachableArmAnalyzer(),
             [
                 "TYPMOD006 | Error | 閉じた型の網羅で到達できない arm | 前の arm が閉じた型の全ての値を扱うので、この arm には到達できない。",
+            ]
+        );
+
+    /// <summary>ValueObjectConstructionAnalyzer が公開する診断</summary>
+    [Test]
+    public Task ValueObjectConstructionAnalyzer_publishes_its_diagnostics() =>
+        AssertDiagnostics(
+            new ValueObjectConstructionAnalyzer(),
+            [
+                "TYPMOD024 | Error | 値オブジェクトの new による構築 | 値オブジェクト '{0}' を new で構築すると Parse の検証を迂回する。Create を呼び、複製は with で作る。",
+            ]
+        );
+
+    /// <summary>ValueObjectShapeAnalyzer が公開する診断</summary>
+    [Test]
+    public Task ValueObjectShapeAnalyzer_publishes_its_diagnostics() =>
+        AssertDiagnostics(
+            new ValueObjectShapeAnalyzer(),
+            [
+                "TYPMOD023 | Error | ValueObject の宣言の形が不適合 | 型 {0} は検証を経ずに構築も書込もできない宣言にする。基底型のない sealed partial record とし、コンストラクタ、Value、書き込める field、property、indexer を宣言しない。{1}",
             ]
         );
 
