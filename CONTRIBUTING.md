@@ -42,21 +42,22 @@ commit の件名は `型: 要約` の一行で書き、型はブランチの pre
 
 ## 検証
 
-検証は時間の予算で分けた三つの入口で行い、どれもリポジトリの root で `devenv shell <入口>` として実行する。
-所要時間が予算を超えた入口は失敗として扱い、その検証をより安い手段へ置き換えるか後の段へ移す。
+検証は三つの入口で行い、どれもリポジトリの root で `devenv shell <入口>` として実行する。
+時間の目標を超えた走行は取り消さず、超過が続く入口は、その検証をより安い手段へ置き換えるか後の段へ移す。
+一走行の上限に達した走行は取り消され、合格として扱わない。取り消された走行が進行中だった場合は、検査の失敗として直さず、その経過時間を下限に上限を決め直す。
 変更した C# file は、`devenv shell -- csharpier format --ignore-path .gitignore <files>` で整形する。
 `<files>` には今回変更した file の path を渡し、無関係な file の整形を混ぜない。
 formatter は `devenv.lock` が固定する Nixpkgs から供給し、個人の global install を前提にしない。
 ignore file はこの repository のものを明示し、別 repository の無視対象 directory 内に置いた worktree まで祖先の設定で除外しない。
 
-| 入口          | 段 | 予算  | 実行する時点 | 中身                                                                                                                                         |
+| 入口          | 段 | 目標と上限 | 実行する時点 | 中身                                                                                                                                         |
 | ------------- | -- | ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verify`      | T1 | 2 分  | commit の前  | analyzer の警告をエラー扱いにした build(S3776 の認知的複雑度 15 を含む)、TypeModeling.Tests、TypeModeling.Analyzers.Tests                 |
-| `verify-push` | T2 | 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling.Analysis.Tests(利用側を模した repository の build で、props の取り込みと診断を弱める設定の拒否を確かめる) |
+| `verify`      | T1 | 目標 2 分、上限 2 分 | commit の前  | analyzer の警告をエラー扱いにした build(S3776 の認知的複雑度 15 を含む)、TypeModeling.Tests、TypeModeling.Analyzers.Tests                 |
+| `verify-push` | T2 | 上限 15 分 | push の前    | `verify`、SelfAuditTests、TypeModeling.Analysis.Tests(利用側を模した repository の build で、props の取り込みと診断を弱める設定の拒否を確かめる) |
 | `verify-full` | T3 | なし  | 分析が必要なとき | `verify`、TypeModeling.Testing.Tests の全件、TypeModeling.Analysis.Tests、三つの source project 全量の mutation と未検出 mutant の記録 |
 
-時間予算は、root の `tiergate.json` の `verify.seconds` と `verify-push.seconds` に宣言する。
-push フックはこの予算で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。
+時間の目標(`feedbackTargetSeconds`)と一走行の上限(`seconds`)は、root の `tiergate.json` の `verify` と `verify-push` に分けて宣言し、値の根拠を同じ file の `basis` に残す。目標を宣言していない入口は上限だけを持つ。
+push フックはこの上限で既存の `verify-push` を実行し、送信する commit と検証対象の一致を確認する。
 push の前には、index・作業ツリー・未追跡 file に差分を残さない。
 
 push の基点は、upstream を持つ枝では upstream との分岐点とし、持たない枝では `origin/develop` との分岐点とする。
